@@ -1,13 +1,11 @@
 "use client"
 
-import { useState } from "react"
-import { Link } from "react-router-dom"
+import { useState, useMemo } from "react"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Card, CardContent } from "../../components/ui/card"
 import { Badge } from "../../components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -19,311 +17,380 @@ import {
 } from "../../components/ui/dialog"
 import { Label } from "../../components/ui/label"
 import { Textarea } from "../../components/ui/textarea"
-import { Music, Search, Plus, Edit, Trash, ChevronRight } from "lucide-react"
-
-interface Cancion {
-  id: number
-  nombre: string
-  categoria: string
-  autor: string
-  fechaAgregada: string
-  letra?: string
-  acordes?: string
-}
+import { Music, Search, Plus, Edit, Trash2, Filter, ListMusic, Grid3X3, Loader2 } from "lucide-react"
+import { useCanciones, useCategorias } from "../../hooks"
+import { useAuth } from "../../contexts/AuthContext"
+import type { NuevaCancion } from "../../types/database.types"
 
 export default function RepertorioPage() {
+  const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("")
-  const [authorFilter, setAuthorFilter] = useState("")
-  const [newSong, setNewSong] = useState<Cancion>({
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [newSong, setNewSong] = useState({
     nombre: "",
-    categoria: "",
+    categoria_id: "",
     autor: "",
-    fechaAgregada: new Date().toISOString().split('T')[0],
+    tono: "",
     letra: "",
     acordes: "",
   })
 
-  // Datos de ejemplo
-  const canciones: Cancion[] = [
-    {
-      id: 1,
-      nombre: "Grande y Fuerte",
-      categoria: "Alabanza",
-      autor: "Miel San Marcos",
-      fechaAgregada: "2025-04-10",
-      letra: "",
-      acordes: "",
-    },
-    {
-      id: 2,
-      nombre: "Dios Incomparable",
-      categoria: "Adoración",
-      autor: "Generación 12",
-      fechaAgregada: "2025-04-08",
-      letra: "",
-      acordes: "",
-    },
-    {
-      id: 3,
-      nombre: "Tu Amor No Se Rinde",
-      categoria: "Adoración",
-      autor: "Hillsong",
-      fechaAgregada: "2025-04-05",
-      letra: "",
-      acordes: "",
-    },
-    {
-      id: 4,
-      nombre: "Poderoso Para Salvar",
-      categoria: "Adoración",
-      autor: "Hillsong",
-      fechaAgregada: "2025-04-01",
-      letra: "",
-      acordes: "",
-    },
-    {
-      id: 5,
-      nombre: "Agnus Dei",
-      categoria: "Adoración",
-      autor: "Michael W. Smith",
-      fechaAgregada: "2025-03-28",
-      letra: "",
-      acordes: "",
-    },
-    {
-      id: 6,
-      nombre: "Roca Eterna",
-      categoria: "Alabanza",
-      autor: "Marcos Witt",
-      fechaAgregada: "2025-03-25",
-      letra: "",
-      acordes: "",
-    },
-    {
-      id: 7,
-      nombre: "Digno Es El Señor",
-      categoria: "Adoración",
-      autor: "Marcos Witt",
-      fechaAgregada: "2025-03-20",
-      letra: "",
-      acordes: "",
-    },
-    {
-      id: 8,
-      nombre: "Al Que Está Sentado",
-      categoria: "Adoración",
-      autor: "Marcos Brunet",
-      fechaAgregada: "2025-03-15",
-      letra: "",
-      acordes: "",
-    },
-  ]
+  // Hooks de datos
+  const { canciones, loading, createCancion, deleteCancion } = useCanciones({ activa: true })
+  const { categorias } = useCategorias()
 
-  const autores = [...new Set(canciones.map((cancion) => cancion.autor))]
-
-  const handleAddSong = () => {
-    // Aquí iría la lógica para agregar la canción a la base de datos
-    console.log("Nueva canción:", newSong)
-    // Resetear el formulario
-    setNewSong({
-      nombre: "",
-      categoria: "",
-      autor: "",
-      fechaAgregada: new Date().toISOString().split('T')[0],
-      letra: "",
-      acordes: "",
+  // Filtrar canciones
+  const filteredSongs = useMemo(() => {
+    return canciones.filter((cancion) => {
+      const matchesSearch = cancion.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            (cancion.autor?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+      const matchesCategory = !categoryFilter || categoryFilter === "todas" || 
+                              cancion.categoria_id?.toString() === categoryFilter
+      return matchesSearch && matchesCategory
     })
+  }, [canciones, searchTerm, categoryFilter])
+
+  // Obtener nombre de categoría
+  const getCategoriaName = (categoriaId: number | null) => {
+    if (!categoriaId) return "Sin categoría"
+    const cat = categorias.find(c => c.id === categoriaId)
+    return cat?.nombre || "Sin categoría"
   }
 
-  const filteredSongs = canciones.filter((cancion) => {
-    const matchesSearch = cancion.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = categoryFilter === "" || cancion.categoria === categoryFilter
-    const matchesAuthor = authorFilter === "" || cancion.autor === authorFilter
-    return matchesSearch && matchesCategory && matchesAuthor
-  })
+  const handleAddSong = async () => {
+    if (!newSong.nombre) return
+    
+    setIsSaving(true)
+    try {
+      const nuevaCancion: NuevaCancion = {
+        nombre: newSong.nombre,
+        autor: newSong.autor || null,
+        categoria_id: newSong.categoria_id ? parseInt(newSong.categoria_id) : null,
+        tono: newSong.tono || null,
+        letra: newSong.letra || null,
+        acordes: newSong.acordes || null,
+        created_by: user?.id,
+      }
+      await createCancion(nuevaCancion)
+      setNewSong({ nombre: "", categoria_id: "", autor: "", tono: "", letra: "", acordes: "" })
+      setIsDialogOpen(false)
+    } catch (error) {
+      console.error("Error al crear canción:", error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDeleteSong = async (id: string) => {
+    if (window.confirm("¿Estás seguro de eliminar esta canción?")) {
+      try {
+        await deleteCancion(id)
+      } catch (error) {
+        console.error("Error al eliminar canción:", error)
+      }
+    }
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Repertorio</h2>
-          <p className="text-muted-foreground">Gestiona el repertorio de canciones del ministerio</p>
+    <div className="space-y-6">
+      {/* ═══════════════════════════════════════════════════════════════════
+          HEADER
+          ═══════════════════════════════════════════════════════════════════ */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="animate-fade-in-up">
+          <h1 className="text-3xl font-display font-bold flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-cuadrangular-red/10 flex items-center justify-center">
+              <Music className="w-5 h-5 text-cuadrangular-red" />
+            </div>
+            Repertorio
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {filteredSongs.length} canciones en el repertorio
+          </p>
         </div>
-        <div className="flex items-center gap-4">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" /> Agregar Canción
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[550px]">
-              <DialogHeader>
-                <DialogTitle>Agregar Nueva Canción</DialogTitle>
-                <DialogDescription>
-                  Completa el formulario para agregar una nueva canción al repertorio.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="nombre" className="text-right">
-                    Nombre
-                  </Label>
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-gradient-to-r from-cuadrangular-red to-cuadrangular-purple hover:opacity-90 text-white shadow-glow-purple animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+              <Plus className="w-4 h-4 mr-2" />
+              Agregar Canción
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[550px]">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-display">Nueva Canción</DialogTitle>
+              <DialogDescription>
+                Agrega una nueva canción al repertorio del ministerio
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nombre *</Label>
                   <Input
-                    id="nombre"
                     value={newSong.nombre}
                     onChange={(e) => setNewSong({ ...newSong, nombre: e.target.value })}
-                    className="col-span-3"
+                    placeholder="Nombre de la canción"
+                    className="border-border/50 focus:border-cuadrangular-purple"
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="categoria" className="text-right">
-                    Categoría
-                  </Label>
-                  <Select
-                    value={newSong.categoria}
-                    onValueChange={(value) => setNewSong({ ...newSong, categoria: value })}
-                  >
-                    <SelectTrigger id="categoria" className="col-span-3">
-                      <SelectValue placeholder="Seleccionar categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Alabanza">Alabanza</SelectItem>
-                      <SelectItem value="Adoración">Adoración</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="autor" className="text-right">
-                    Autor
-                  </Label>
+                <div className="space-y-2">
+                  <Label>Tono</Label>
                   <Input
-                    id="autor"
-                    value={newSong.autor}
-                    onChange={(e) => setNewSong({ ...newSong, autor: e.target.value })}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="letra" className="text-right">
-                    Letra
-                  </Label>
-                  <Textarea
-                    id="letra"
-                    value={newSong.letra}
-                    onChange={(e) => setNewSong({ ...newSong, letra: e.target.value })}
-                    className="col-span-3"
-                    rows={4}
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="acordes" className="text-right">
-                    Acordes
-                  </Label>
-                  <Textarea
-                    id="acordes"
-                    value={newSong.acordes}
-                    onChange={(e) => setNewSong({ ...newSong, acordes: e.target.value })}
-                    className="col-span-3"
-                    rows={4}
+                    value={newSong.tono}
+                    onChange={(e) => setNewSong({ ...newSong, tono: e.target.value })}
+                    placeholder="Ej: G, Am, D"
+                    className="border-border/50 focus:border-cuadrangular-purple"
                   />
                 </div>
               </div>
-              <DialogFooter>
-                <Button onClick={handleAddSong}>Guardar</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Categoría</Label>
+                  <Select value={newSong.categoria_id} onValueChange={(value) => setNewSong({ ...newSong, categoria_id: value })}>
+                    <SelectTrigger className="border-border/50 focus:border-cuadrangular-purple">
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categorias.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id.toString()}>
+                          {cat.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Autor</Label>
+                  <Input
+                    value={newSong.autor}
+                    onChange={(e) => setNewSong({ ...newSong, autor: e.target.value })}
+                    placeholder="Artista o banda"
+                    className="border-border/50 focus:border-cuadrangular-purple"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Letra</Label>
+                <Textarea
+                  value={newSong.letra}
+                  onChange={(e) => setNewSong({ ...newSong, letra: e.target.value })}
+                  placeholder="Letra de la canción..."
+                  rows={4}
+                  className="border-border/50 focus:border-cuadrangular-purple resize-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Acordes</Label>
+                <Textarea
+                  value={newSong.acordes}
+                  onChange={(e) => setNewSong({ ...newSong, acordes: e.target.value })}
+                  placeholder="Progresión de acordes..."
+                  rows={3}
+                  className="border-border/50 focus:border-cuadrangular-purple resize-none font-mono text-sm"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                onClick={handleAddSong} 
+                disabled={isSaving || !newSong.nombre}
+                className="bg-gradient-to-r from-cuadrangular-red to-cuadrangular-purple text-white"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  "Guardar Canción"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <div className="flex gap-4">
-        <div className="flex-1">
-          <Input
-            placeholder="Buscar canción..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full"
-            leftIcon={<Search className="h-4 w-4" />}
-          />
-        </div>
-        <div className="w-48">
-          <Select
-            value={categoryFilter}
-            onValueChange={setCategoryFilter}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Filtrar por categoría" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Alabanza">Alabanza</SelectItem>
-              <SelectItem value="Adoración">Adoración</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="w-48">
-          <Select
-            value={authorFilter}
-            onValueChange={setAuthorFilter}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Filtrar por autor" />
-            </SelectTrigger>
-            <SelectContent>
-              {autores.map((autor) => (
-                <SelectItem key={autor} value={autor}>
-                  {autor}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <Card>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Categoría</TableHead>
-                <TableHead>Autor</TableHead>
-                <TableHead>Fecha de Agregado</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSongs.map((cancion) => (
-                <TableRow key={cancion.id}>
-                  <TableCell>{cancion.nombre}</TableCell>
-                  <TableCell>
-                    <Badge variant={cancion.categoria === "Alabanza" ? "default" : "secondary"}>
-                      {cancion.categoria}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{cancion.autor}</TableCell>
-                  <TableCell>
-                    {new Date(cancion.fechaAgregada).toLocaleDateString("es-ES")}
-                  </TableCell>
-                  <TableCell className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" asChild>
-                      <Link to={`/dashboard/repertorio/${cancion.id}`}>
-                        <Edit className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => {
-                      // Aquí iría la lógica para eliminar la canción
-                      console.log("Eliminar canción:", cancion)
-                    }}>
-                      <Trash className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+      {/* ═══════════════════════════════════════════════════════════════════
+          FILTROS
+          ═══════════════════════════════════════════════════════════════════ */}
+      <Card className="border-border/50 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Búsqueda */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nombre o autor..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 border-border/50 focus:border-cuadrangular-cyan"
+              />
+            </div>
+            
+            {/* Filtro categoría */}
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-48 border-border/50">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas</SelectItem>
+                {categorias.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id.toString()}>
+                    {cat.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {/* Vista */}
+            <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg">
+              <Button
+                variant={viewMode === "grid" ? "secondary" : "ghost"}
+                size="icon"
+                onClick={() => setViewMode("grid")}
+                className="h-8 w-8"
+              >
+                <Grid3X3 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "secondary" : "ghost"}
+                size="icon"
+                onClick={() => setViewMode("list")}
+                className="h-8 w-8"
+              >
+                <ListMusic className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          LISTA DE CANCIONES
+          ═══════════════════════════════════════════════════════════════════ */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-cuadrangular-purple" />
+        </div>
+      ) : filteredSongs.length === 0 ? (
+        <Card className="border-border/50">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <Music className="w-16 h-16 text-muted-foreground/30 mb-4" />
+            <p className="text-lg font-medium text-muted-foreground">No hay canciones</p>
+            <p className="text-sm text-muted-foreground">Agrega una nueva canción para comenzar</p>
+          </CardContent>
+        </Card>
+      ) : viewMode === "grid" ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filteredSongs.map((cancion, index) => {
+            const categoriaNombre = getCategoriaName(cancion.categoria_id)
+            return (
+              <Card 
+                key={cancion.id} 
+                className="group border-border/50 hover:border-cuadrangular-red/30 transition-all duration-300 hover:shadow-glow-red/20 animate-fade-in-up"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cuadrangular-red/20 to-cuadrangular-purple/20 flex items-center justify-center">
+                      <Music className="w-6 h-6 text-cuadrangular-red" />
+                    </div>
+                    <Badge 
+                      variant="secondary" 
+                      className={categoriaNombre === "Alabanza" 
+                        ? "bg-cuadrangular-red/10 text-cuadrangular-red border-0" 
+                        : "bg-cuadrangular-cyan/10 text-cuadrangular-cyan border-0"
+                      }
+                    >
+                      {categoriaNombre}
+                    </Badge>
+                  </div>
+                  
+                  <h3 className="font-semibold text-lg mb-1 line-clamp-1">{cancion.nombre}</h3>
+                  <p className="text-sm text-muted-foreground mb-3">{cancion.autor || "Desconocido"}</p>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      Tono: <span className="font-semibold text-cuadrangular-purple">{cancion.tono || "-"}</span>
+                    </span>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-cuadrangular-red"
+                        onClick={() => handleDeleteSong(cancion.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      ) : (
+        <Card className="border-border/50 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+          <CardContent className="p-0">
+            <div className="divide-y divide-border/50">
+              {filteredSongs.map((cancion) => {
+                const categoriaNombre = getCategoriaName(cancion.categoria_id)
+                return (
+                  <div 
+                    key={cancion.id} 
+                    className="group flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cuadrangular-red/20 to-cuadrangular-purple/20 flex items-center justify-center">
+                        <Music className="w-5 h-5 text-cuadrangular-red" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold">{cancion.nombre}</h4>
+                        <p className="text-sm text-muted-foreground">{cancion.autor || "Desconocido"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <Badge 
+                        variant="secondary" 
+                        className={categoriaNombre === "Alabanza" 
+                          ? "bg-cuadrangular-red/10 text-cuadrangular-red border-0" 
+                          : "bg-cuadrangular-cyan/10 text-cuadrangular-cyan border-0"
+                        }
+                      >
+                        {categoriaNombre}
+                      </Badge>
+                      <span className="text-sm font-medium text-cuadrangular-purple w-8 text-center">
+                        {cancion.tono || "-"}
+                      </span>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-cuadrangular-red"
+                          onClick={() => handleDeleteSong(cancion.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

@@ -1,118 +1,439 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROCKA ETERNA - Sistema de Diseño
+   Colores del Evangelio Cuadrangular:
+   🔴 Rojo (Cruz) - Salvación
+   🔵 Cyan (Copa) - Bautismo del Espíritu Santo
+   🟡 Amarillo (Paloma) - Sanidad Divina
+   🟣 Morado (Corona) - Segunda Venida
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 @layer base {
   :root {
-    --background: 0, 0%, 100%;
-    --foreground: 222.2, 84%, 4.9%;
-    --card: 0, 0%, 100%;
-    --card-foreground: 222.2, 84%, 4.9%;
-    --popover: 0, 0%, 100%;
-    --popover-foreground: 222.2, 84%, 4.9%;
-    --primary: 0, 72%, 51%;
-    --primary-foreground: 210, 40%, 98%;
-    --secondary: 210, 79%, 46%;
-    --secondary-foreground: 222.2, 47.4%, 11.2%;
-    --accent: 270, 50%, 40%;
-    --accent-foreground: 222.2, 47.4%, 11.2%;
-    --tertiary: 45, 93%, 47%;
-    --tertiary-foreground: 222.2, 47.4%, 11.2%;
-    --muted: 210, 40%, 96.1%;
-    --muted-foreground: 215.4, 16.3%, 46.9%;
-    --destructive: 0, 84.2%, 60.2%;
-    --destructive-foreground: 210, 40%, 98%;
-    --border: 214.3, 31.8%, 91.4%;
-    --input: 214.3, 31.8%, 91.4%;
-    --ring: 222.2, 84%, 4.9%;
-    --radius: 0.5rem;
+    /* Background & Foreground */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 10%;
+    
+    /* Cards & Surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
+    
+    /* Colores del Evangelio Cuadrangular */
+    --cuadrangular-red: 0 84% 60%;
+    --cuadrangular-cyan: 190 100% 50%;
+    --cuadrangular-yellow: 43 96% 56%;
+    --cuadrangular-purple: 262 83% 58%;
+    
+    /* Primary: Rojo (Salvación) */
+    --primary: 0 84% 60%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary: Cyan (Espíritu Santo) */
+    --secondary: 190 100% 50%;
+    --secondary-foreground: 240 10% 10%;
+    
+    /* Accent: Morado (Segunda Venida) */
+    --accent: 262 83% 58%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* Tertiary: Amarillo (Sanidad) */
+    --tertiary: 43 96% 56%;
+    --tertiary-foreground: 240 10% 10%;
+    
+    /* UI Elements */
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 262 83% 58%;
+    --radius: 0.75rem;
+    
+    /* Gradientes */
+    --gradient-cuadrangular: linear-gradient(135deg, 
+      hsl(var(--cuadrangular-red)) 0%, 
+      hsl(var(--cuadrangular-purple)) 33%, 
+      hsl(var(--cuadrangular-cyan)) 66%, 
+      hsl(var(--cuadrangular-yellow)) 100%);
   }
 
   .dark {
-    --background: 222.2, 84%, 4.9%;
-    --foreground: 210, 40%, 98%;
-    --card: 222.2, 84%, 4.9%;
-    --card-foreground: 210, 40%, 98%;
-    --popover: 222.2, 84%, 4.9%;
-    --popover-foreground: 210, 40%, 98%;
-    --primary: 0, 72%, 51%;
-    --primary-foreground: 210, 40%, 98%;
-    --secondary: 210, 79%, 46%;
-    --secondary-foreground: 210, 40%, 98%;
-    --accent: 270, 50%, 40%;
-    --accent-foreground: 210, 40%, 98%;
-    --tertiary: 45, 93%, 47%;
-    --tertiary-foreground: 222.2, 47.4%, 11.2%;
-    --muted: 217.2, 32.6%, 17.5%;
-    --muted-foreground: 215, 20.2%, 65.1%;
-    --destructive: 0, 62.8%, 30.6%;
-    --destructive-foreground: 210, 40%, 98%;
-    --border: 217.2, 32.6%, 17.5%;
-    --input: 217.2, 32.6%, 17.5%;
-    --ring: 212.7, 26.8%, 83.9%;
+    /* Background: #211E2B como solicitado */
+    --background: 252 14% 14%;
+    --foreground: 0 0% 98%;
+    
+    /* Cards más claras que el fondo */
+    --card: 252 14% 18%;
+    --card-foreground: 0 0% 98%;
+    --popover: 252 14% 18%;
+    --popover-foreground: 0 0% 98%;
+    
+    /* Colores vibrantes para modo oscuro */
+    --primary: 0 84% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 190 100% 50%;
+    --secondary-foreground: 240 10% 10%;
+    --accent: 262 83% 65%;
+    --accent-foreground: 0 0% 100%;
+    --tertiary: 43 96% 56%;
+    --tertiary-foreground: 240 10% 10%;
+    
+    /* UI Elements */
+    --muted: 252 14% 22%;
+    --muted-foreground: 240 5% 65%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 252 14% 25%;
+    --input: 252 14% 22%;
+    --ring: 262 83% 65%;
   }
 }
 
 @layer base {
   * {
-    @apply border border-gray-200 dark:border-gray-800;
+    @apply border-border;
+    border-width: 0;
   }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', system-ui, sans-serif;
+    @apply font-bold tracking-tight;
   }
 }
 
+@layer components {
+  /* ═══════════════════════════════════════════════════════════════════════
+     COMPONENTES ESPECIALES - Estilo Cuadrangular
+     ═══════════════════════════════════════════════════════════════════════ */
+  
+  /* Gradiente animado del evangelio */
+  .gradient-cuadrangular {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--cuadrangular-red)) 0%,
+      hsl(var(--cuadrangular-purple)) 25%,
+      hsl(var(--cuadrangular-cyan)) 50%,
+      hsl(var(--cuadrangular-yellow)) 75%,
+      hsl(var(--cuadrangular-red)) 100%
+    );
+    background-size: 400% 400%;
+    animation: gradient-shift 8s ease infinite;
+  }
+  
+  /* Borde con gradiente */
+  .border-gradient {
+    position: relative;
+    background: hsl(var(--card));
+    border-radius: var(--radius);
+  }
+  
+  .border-gradient::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 2px;
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--cuadrangular-red)),
+      hsl(var(--cuadrangular-purple)),
+      hsl(var(--cuadrangular-cyan)),
+      hsl(var(--cuadrangular-yellow))
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+  
+  /* Glass effect */
+  .glass {
+    background: hsla(var(--card), 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsla(var(--border), 0.3);
+  }
+  
+  /* Efecto glow para los colores del evangelio */
+  .glow-red {
+    box-shadow: 0 0 40px -10px hsl(var(--cuadrangular-red));
+  }
+  .glow-cyan {
+    box-shadow: 0 0 40px -10px hsl(var(--cuadrangular-cyan));
+  }
+  .glow-yellow {
+    box-shadow: 0 0 40px -10px hsl(var(--cuadrangular-yellow));
+  }
+  .glow-purple {
+    box-shadow: 0 0 40px -10px hsl(var(--cuadrangular-purple));
+  }
+  
+  /* Texto con gradiente */
+  .text-gradient {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--cuadrangular-red)) 0%,
+      hsl(var(--cuadrangular-purple)) 50%,
+      hsl(var(--cuadrangular-cyan)) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  /* Card con hover elegante */
+  .card-hover {
+    @apply transition-all duration-500 ease-out;
+  }
+  .card-hover:hover {
+    transform: translateY(-8px);
+    box-shadow: 
+      0 20px 40px -15px hsla(var(--cuadrangular-purple), 0.3),
+      0 10px 20px -10px hsla(var(--cuadrangular-cyan), 0.2);
+  }
+  
+  /* Botón con efecto especial */
+  .btn-cuadrangular {
+    @apply relative overflow-hidden transition-all duration-300;
+    background: linear-gradient(135deg, hsl(var(--cuadrangular-red)), hsl(var(--cuadrangular-purple)));
+  }
+  .btn-cuadrangular::before {
+    content: '';
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: linear-gradient(135deg, hsl(var(--cuadrangular-purple)), hsl(var(--cuadrangular-cyan)));
+  }
+  .btn-cuadrangular:hover::before {
+    @apply opacity-100;
+  }
+  
+  /* Indicadores de color del evangelio */
+  .dot-salvation { @apply w-3 h-3 rounded-full bg-[hsl(var(--cuadrangular-red))]; }
+  .dot-spirit { @apply w-3 h-3 rounded-full bg-[hsl(var(--cuadrangular-cyan))]; }
+  .dot-healing { @apply w-3 h-3 rounded-full bg-[hsl(var(--cuadrangular-yellow))]; }
+  .dot-coming { @apply w-3 h-3 rounded-full bg-[hsl(var(--cuadrangular-purple))]; }
+}
+
 @layer utilities {
-  /* Animaciones */
+  /* ═══════════════════════════════════════════════════════════════════════
+     ANIMACIONES
+     ═══════════════════════════════════════════════════════════════════════ */
+  
   .animate-fade-in {
-    animation: fadeIn 0.5s ease-in-out;
+    animation: fadeIn 0.6s ease-out forwards;
   }
-  .animate-slide-up {
-    animation: slideUp 0.5s ease-in-out;
+  
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
   }
-  .animate-slide-down {
-    animation: slideDown 0.5s ease-in-out;
+  
+  .animate-fade-in-down {
+    animation: fadeInDown 0.6s ease-out forwards;
   }
-  .animate-pulse {
-    animation: pulse 2s infinite;
+  
+  .animate-scale-in {
+    animation: scaleIn 0.5s ease-out forwards;
+  }
+  
+  .animate-slide-in-left {
+    animation: slideInLeft 0.6s ease-out forwards;
+  }
+  
+  .animate-slide-in-right {
+    animation: slideInRight 0.6s ease-out forwards;
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .animate-pulse-soft {
+    animation: pulseSoft 3s ease-in-out infinite;
+  }
+  
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsla(var(--cuadrangular-cyan), 0.1),
+      transparent
+    );
+    background-size: 200% 100%;
+  }
+  
+  /* Delay utilities */
+  .delay-100 { animation-delay: 100ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  .delay-500 { animation-delay: 500ms; }
+  .delay-600 { animation-delay: 600ms; }
+  .delay-700 { animation-delay: 700ms; }
+  .delay-800 { animation-delay: 800ms; }
+  
+  /* Efectos de texto */
+  .text-shadow-glow {
+    text-shadow: 0 0 40px hsla(var(--cuadrangular-purple), 0.5);
+  }
+  
+  /* Scrollbar personalizado */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--cuadrangular-purple)),
+      hsl(var(--cuadrangular-cyan))
+    );
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--cuadrangular-red)),
+      hsl(var(--cuadrangular-purple))
+    );
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KEYFRAMES
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-@keyframes slideUp {
+@keyframes fadeInUp {
   from {
-    transform: translateY(20px);
     opacity: 0;
+    transform: translateY(30px);
   }
   to {
-    transform: translateY(0);
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@keyframes slideDown {
+@keyframes fadeInDown {
   from {
-    transform: translateY(-20px);
     opacity: 0;
+    transform: translateY(-30px);
   }
   to {
-    transform: translateY(0);
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@keyframes pulse {
-  0% {
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
     opacity: 1;
+    transform: scale(1);
   }
-  50% {
-    opacity: 0.5;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
   }
-  100% {
+  to {
     opacity: 1;
+    transform: translateX(0);
   }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes pulseSoft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PATRONES DE FONDO
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.pattern-dots {
+  background-image: radial-gradient(
+    hsla(var(--cuadrangular-purple), 0.15) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
+
+.pattern-grid {
+  background-image: 
+    linear-gradient(hsla(var(--border), 0.5) 1px, transparent 1px),
+    linear-gradient(90deg, hsla(var(--border), 0.5) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.pattern-cross {
+  background-image: 
+    radial-gradient(hsla(var(--cuadrangular-red), 0.08) 2px, transparent 2px);
+  background-size: 32px 32px;
+}
+
+/* Overlay gradiente para hero sections */
+.overlay-gradient {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    hsla(var(--background), 0.5) 50%,
+    hsl(var(--background)) 100%
+  );
 }

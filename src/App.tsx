@@ -6,8 +6,8 @@ import DashboardPage from "./pages/dashboard/DashboardPage"
 import RepertorioPage from "./pages/dashboard/RepertorioPage"
 import ProgramacionesPage from "./pages/dashboard/ProgramacionesPage"
 import NuevaProgramacionPage from "./pages/dashboard/NuevaProgramacionPage"
+import EditarProgramacionPage from "./pages/dashboard/EditarProgramacionPage"
 import EquipoPage from "./pages/dashboard/EquipoPage"
-import NotificacionesPage from "./pages/dashboard/NotificacionesPage"
 import ConfiguracionPage from "./pages/dashboard/ConfiguracionPage"
 
 function App() {
@@ -21,8 +21,8 @@ function App() {
         <Route path="repertorio" element={<RepertorioPage />} />
         <Route path="programaciones" element={<ProgramacionesPage />} />
         <Route path="programaciones/nueva" element={<NuevaProgramacionPage />} />
+        <Route path="programaciones/:id" element={<EditarProgramacionPage />} />
         <Route path="equipo" element={<EquipoPage />} />
-        <Route path="notificaciones" element={<NotificacionesPage />} />
         <Route path="configuracion" element={<ConfiguracionPage />} />
       </Route>
     </Routes>
