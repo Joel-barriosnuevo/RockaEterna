@@ -151,6 +151,11 @@ export default function EquipoPage() {
 
   // Notificar miembro por WhatsApp
   const handleNotificarWhatsApp = (miembro: typeof miembros[0]) => {
+    if (!isAdmin) {
+      alert("Solo los administradores pueden enviar notificaciones")
+      return
+    }
+    
     if (!miembro.telefono) {
       alert("Este miembro no tiene número de teléfono registrado")
       return
@@ -165,6 +170,11 @@ export default function EquipoPage() {
   const [enviandoEmail, setEnviandoEmail] = useState<string | null>(null)
   
   const handleNotificarEmail = async (miembro: typeof miembros[0]) => {
+    if (!isAdmin) {
+      alert("Solo los administradores pueden enviar notificaciones")
+      return
+    }
+    
     if (!miembro.email) {
       alert("Este miembro no tiene email registrado")
       return
@@ -176,7 +186,7 @@ export default function EquipoPage() {
       const programaciones = getProgramacionesMiembro(miembro.nombre)
       
       if (programaciones.length === 0) {
-        alert(`${miembro.nombre} no tiene programaciones asignadas`)
+        alert("No hay programaciones asignadas a este miembro")
         return
       }
       
@@ -186,14 +196,14 @@ export default function EquipoPage() {
         programaciones
       )
       
-      if (resultado) {
-        alert(`✅ Email enviado a ${miembro.nombre}`)
+      if (resultado.success) {
+        alert(`✅ Notificación enviada a ${miembro.nombre} por email`)
       } else {
-        alert(`❌ Error al enviar email a ${miembro.nombre}`)
+        alert(`❌ Error al enviar notificación: ${resultado.error}`)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error enviando email:", error)
-      alert("Error al enviar el email")
+      alert(`❌ Error al enviar notificación: ${error.message}`)
     } finally {
       setEnviandoEmail(null)
     }
@@ -216,7 +226,7 @@ export default function EquipoPage() {
         nombre: usuarioSeleccionado.nombre,
         apellido: usuarioSeleccionado.apellido,
         email: usuarioSeleccionado.email || null,
-        telefono: null, // El teléfono se puede agregar después
+        telefono: usuarioSeleccionado.telefono || null, // Tomar el teléfono del usuario
         rol_principal_id: selectedRoles[0],
       }
       const miembroCreado = await createMiembro(nuevoMiembro)
@@ -364,13 +374,13 @@ export default function EquipoPage() {
           ═══════════════════════════════════════════════════════════════════ */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="animate-fade-in-up">
-          <h1 className="text-3xl font-display font-bold flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-cuadrangular-yellow/10 flex items-center justify-center">
-              <Users className="w-5 h-5 text-cuadrangular-yellow" />
+          <h1 className="text-2xl sm:text-3xl font-display font-bold flex items-center gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-cuadrangular-yellow/10 flex items-center justify-center">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-cuadrangular-yellow" />
             </div>
-            Equipo de Alabanza
+            <span className="truncate">Equipo de Alabanza</span>
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             {stats.activos} miembros activos de {stats.total} totales
           </p>
         </div>
@@ -378,9 +388,9 @@ export default function EquipoPage() {
         {isAdmin && (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-cuadrangular-yellow to-cuadrangular-red hover:opacity-90 text-white shadow-glow-yellow animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+              <Button className="bg-gradient-to-r from-cuadrangular-yellow to-cuadrangular-red hover:opacity-90 text-white shadow-glow-yellow animate-fade-in-up w-full sm:w-auto justify-start sm:justify-center" style={{ animationDelay: "0.1s" }}>
                 <Plus className="w-4 h-4 mr-2" />
-                Agregar Miembro
+                <span className="truncate">Agregar Miembro</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
@@ -493,13 +503,13 @@ export default function EquipoPage() {
           ═══════════════════════════════════════════════════════════════════ */}
       <Card className="border-border/50 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <div className="flex flex-col gap-3 sm:gap-4">
             {/* Búsqueda */}
-            <div className="relative flex-1 w-full">
+            <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar miembro..."
-                className="pl-10 border-border/50 focus:border-cuadrangular-yellow"
+                className="pl-10 border-border/50 focus:border-cuadrangular-yellow w-full"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -507,18 +517,24 @@ export default function EquipoPage() {
             
             {/* Tabs de estado */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="bg-muted/50">
-                <TabsTrigger value="todos" className="data-[state=active]:bg-card">
-                  <Users className="w-4 h-4 mr-2" />
-                  Todos ({stats.total})
+              <TabsList className="bg-muted/50 w-full justify-start">
+                <TabsTrigger value="todos" className="data-[state=active]:bg-card flex-1 text-xs sm:text-sm">
+                  <Users className="w-4 h-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Todos</span>
+                  <span className="sm:hidden">T</span>
+                  <span className="text-xs">({stats.total})</span>
                 </TabsTrigger>
-                <TabsTrigger value="activos" className="data-[state=active]:bg-card">
-                  <UserCheck className="w-4 h-4 mr-2" />
-                  Activos ({stats.activos})
+                <TabsTrigger value="activos" className="data-[state=active]:bg-card flex-1 text-xs sm:text-sm">
+                  <UserCheck className="w-4 h-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Activos</span>
+                  <span className="sm:hidden">A</span>
+                  <span className="text-xs">({stats.activos})</span>
                 </TabsTrigger>
-                <TabsTrigger value="inactivos" className="data-[state=active]:bg-card">
-                  <UserX className="w-4 h-4 mr-2" />
-                  Inactivos ({stats.inactivos})
+                <TabsTrigger value="inactivos" className="data-[state=active]:bg-card flex-1 text-xs sm:text-sm">
+                  <UserX className="w-4 h-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Inactivos</span>
+                  <span className="sm:hidden">I</span>
+                  <span className="text-xs">({stats.inactivos})</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -534,7 +550,7 @@ export default function EquipoPage() {
           <Loader2 className="w-8 h-8 animate-spin text-cuadrangular-yellow" />
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {filteredMembers.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-16 text-muted-foreground">
               <Users className="w-16 h-16 mb-4 opacity-30" />
@@ -556,15 +572,17 @@ export default function EquipoPage() {
                   <CardContent className="p-6">
                     {/* Header con avatar y estado */}
                     <div className="flex items-start justify-between mb-4">
-                      <Avatar className="w-16 h-16 ring-4 ring-background shadow-lg">
-                        <AvatarImage src={miembro.foto_url || ""} />
-                        <AvatarFallback className={`bg-gradient-to-br ${gradient} text-white text-lg font-bold`}>
+                      <Avatar className="w-14 h-14 sm:w-16 sm:h-16 ring-4 ring-background shadow-lg">
+                        {miembro.foto_url ? (
+                          <AvatarImage src={miembro.foto_url} />
+                        ) : null}
+                        <AvatarFallback className={`bg-gradient-to-br ${gradient} text-white text-sm sm:text-lg font-bold flex items-center justify-center`}>
                           {iniciales}
                         </AvatarFallback>
                       </Avatar>
                       <Badge 
                         variant={miembro.activo ? "default" : "secondary"}
-                        className={`cursor-pointer ${miembro.activo 
+                        className={`cursor-pointer text-xs ${miembro.activo 
                           ? "bg-green-500/10 text-green-600 dark:text-green-400 border-0 hover:bg-green-500/20" 
                           : "bg-muted text-muted-foreground border-0 hover:bg-muted/80"
                         }`}
@@ -577,7 +595,7 @@ export default function EquipoPage() {
                     {/* Info del miembro */}
                     <div className="space-y-3">
                       <div>
-                        <h3 className="font-semibold text-lg">{miembro.nombre} {miembro.apellido}</h3>
+                        <h3 className="font-semibold text-base sm:text-lg truncate">{miembro.nombre} {miembro.apellido}</h3>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {/* Mostrar todos los roles si existen */}
                           {(miembro as any).todos_los_roles?.length > 0 ? (
@@ -595,7 +613,7 @@ export default function EquipoPage() {
                               </Badge>
                             ))
                           ) : (
-                            <Badge variant="secondary" className="bg-cuadrangular-purple/10 text-cuadrangular-purple border-0">
+                            <Badge variant="secondary" className="bg-cuadrangular-purple/10 text-cuadrangular-purple border-0 text-xs">
                               {rolNombre}
                             </Badge>
                           )}
@@ -608,8 +626,8 @@ export default function EquipoPage() {
                             href={`mailto:${miembro.email}`} 
                             className="flex items-center gap-2 text-muted-foreground hover:text-cuadrangular-cyan transition-colors"
                           >
-                            <Mail className="w-4 h-4" />
-                            <span className="truncate">{miembro.email}</span>
+                            <Mail className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                            <span className="truncate text-xs sm:text-sm">{miembro.email}</span>
                           </a>
                         )}
                         {miembro.telefono && (
@@ -617,31 +635,31 @@ export default function EquipoPage() {
                             href={`tel:${miembro.telefono}`} 
                             className="flex items-center gap-2 text-muted-foreground hover:text-cuadrangular-cyan transition-colors"
                           >
-                            <Phone className="w-4 h-4" />
-                            <span>{miembro.telefono}</span>
+                            <Phone className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                            <span className="text-xs sm:text-sm">{miembro.telefono}</span>
                           </a>
                         )}
                         {!miembro.email && !miembro.telefono && (
-                          <p className="text-muted-foreground/50 italic">Sin información de contacto</p>
+                          <p className="text-muted-foreground/50 italic text-xs">Sin información de contacto</p>
                         )}
                       </div>
                     </div>
                     
                     {/* Acciones */}
-                    <div className="flex items-center justify-between gap-1 mt-4 pt-4 border-t border-border/50">
-                      {/* Botón notificar - disponible para todos */}
-                      {(miembro.telefono || miembro.email) && (
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mt-4 pt-4 border-t border-border/50">
+                      {/* Botón notificar - solo para administradores */}
+                      {isAdmin && (miembro.telefono || miembro.email) && (
                         enviandoEmail === miembro.id ? (
-                          <Button variant="outline" size="sm" disabled className="text-cuadrangular-cyan border-cuadrangular-cyan/30">
+                          <Button variant="outline" size="sm" disabled className="text-cuadrangular-cyan border-cuadrangular-cyan/30 w-full sm:w-auto">
                             <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                            Enviando...
+                            <span className="text-xs sm:text-sm">Enviando...</span>
                           </Button>
                         ) : (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm" className="text-cuadrangular-cyan border-cuadrangular-cyan/30 hover:bg-cuadrangular-cyan/10">
-                                <Send className="w-4 h-4 mr-1" />
-                                Notificar
+                              <Button variant="outline" size="sm" className="text-cuadrangular-cyan border-cuadrangular-cyan/30 hover:bg-cuadrangular-cyan/10 w-full sm:w-auto">
+                                <Send className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                <span className="text-xs sm:text-sm">Notificar</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start">
@@ -664,22 +682,24 @@ export default function EquipoPage() {
                       
                       {/* Acciones admin */}
                       {isAdmin && (
-                        <div className="flex items-center gap-1 ml-auto">
+                        <div className="flex items-center gap-2 sm:ml-auto">
                           <Button 
                             variant="ghost" 
-                            size="sm" 
-                            className="text-muted-foreground hover:text-cuadrangular-purple"
+                            size="default" 
+                            className="text-muted-foreground hover:text-cuadrangular-purple h-10 w-10 sm:h-auto sm:w-auto px-3"
                             onClick={() => handleOpenEdit(miembro)}
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-5 h-5" />
+                            <span className="hidden sm:inline ml-2 text-sm">Editar</span>
                           </Button>
                           <Button 
                             variant="ghost" 
-                            size="sm" 
-                            className="text-muted-foreground hover:text-cuadrangular-red"
+                            size="default" 
+                            className="text-muted-foreground hover:text-cuadrangular-red h-10 w-10 sm:h-auto sm:w-auto px-3"
                             onClick={() => handleDeleteMember(miembro.id)}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-5 h-5" />
+                            <span className="hidden sm:inline ml-2 text-sm">Eliminar</span>
                           </Button>
                         </div>
                       )}
@@ -696,7 +716,7 @@ export default function EquipoPage() {
           DIÁLOGO DE EDICIÓN
           ═══════════════════════════════════════════════════════════════════ */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-display">Editar Miembro</DialogTitle>
             <DialogDescription>
@@ -756,25 +776,26 @@ export default function EquipoPage() {
               )}
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sticky bottom-0 bg-background pt-4 border-t">
             <Button 
               variant="outline" 
               onClick={() => setIsEditDialogOpen(false)}
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
             <Button 
               onClick={handleSaveEdit} 
               disabled={isSaving || editRoles.length === 0}
-              className="bg-gradient-to-r from-cuadrangular-yellow to-cuadrangular-red text-white"
+              className="bg-gradient-to-r from-cuadrangular-yellow to-cuadrangular-red text-white w-full sm:w-auto"
             >
               {isSaving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Guardando...
+                  <span className="text-xs sm:text-sm">Guardando...</span>
                 </>
               ) : (
-                "Guardar Cambios"
+                <span className="truncate">Guardar Cambios</span>
               )}
             </Button>
           </DialogFooter>

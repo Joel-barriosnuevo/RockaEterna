@@ -14,8 +14,7 @@ import {
   Menu, 
   X,
   ChevronLeft,
-  ChevronRight,
-  Home
+  ChevronRight
 } from "lucide-react"
 import { useMobile } from "../hooks/use-mobile"
 import { useAuth } from "../contexts/AuthContext"
@@ -62,7 +61,10 @@ export default function DashboardLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const isMobile = useMobile()
-  const { signOut } = useAuth()
+  const { signOut, profile } = useAuth()
+  
+  const userName = profile?.nombre || "Usuario"
+  const userInitial = userName.charAt(0).toUpperCase()
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
@@ -237,17 +239,13 @@ export default function DashboardLayout() {
               <Menu className="h-5 w-5" />
             </Button>
             
-            {/* Breadcrumb / Título */}
+            {/* Título de la página */}
             <div className="flex items-center gap-2 text-sm">
-              <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
-                <Home className="h-4 w-4" />
-              </Link>
-              <span className="text-muted-foreground">/</span>
               <span className="font-medium flex items-center gap-2">
                 {currentPage && (
                   <currentPage.icon className={`h-4 w-4 ${currentPage.color}`} />
                 )}
-                {currentPage?.name || "Dashboard"}
+                <span className="hidden sm:inline">{currentPage?.name || "Dashboard"}</span>
               </span>
             </div>
           </div>
@@ -259,11 +257,11 @@ export default function DashboardLayout() {
             {/* Avatar usuario */}
             <div className="flex items-center gap-3 pl-3 border-l border-border/50">
               <div className="hidden sm:block text-right">
-                <p className="text-sm font-medium">Admin</p>
-                <p className="text-xs text-muted-foreground">Administrador</p>
+                <p className="text-sm font-medium">{userName}</p>
+                <p className="text-xs text-muted-foreground">{profile?.is_admin ? "Administrador" : "Miembro"}</p>
               </div>
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cuadrangular-purple to-cuadrangular-cyan flex items-center justify-center text-white font-semibold text-sm">
-                A
+                {userInitial}
               </div>
             </div>
           </div>

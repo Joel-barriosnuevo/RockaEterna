@@ -20,6 +20,7 @@ export interface Database {
           email: string
           nombre: string
           apellido: string
+          telefono: string | null
           avatar_url: string | null
           tema: string
           is_admin: boolean
@@ -33,6 +34,7 @@ export interface Database {
           email: string
           nombre: string
           apellido: string
+          telefono?: string | null
           avatar_url?: string | null
           tema?: string
           is_admin?: boolean
@@ -46,6 +48,7 @@ export interface Database {
           email?: string
           nombre?: string
           apellido?: string
+          telefono?: string | null
           avatar_url?: string | null
           tema?: string
           is_admin?: boolean

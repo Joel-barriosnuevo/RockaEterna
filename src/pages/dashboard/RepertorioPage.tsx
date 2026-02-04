@@ -28,8 +28,18 @@ export default function RepertorioPage() {
   const [categoryFilter, setCategoryFilter] = useState("")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [newSong, setNewSong] = useState({
+    nombre: "",
+    categoria_id: "",
+    autor: "",
+    tono: "",
+    letra: "",
+    acordes: "",
+  })
+  const [editSong, setEditSong] = useState({
     nombre: "",
     categoria_id: "",
     autor: "",
@@ -39,7 +49,7 @@ export default function RepertorioPage() {
   })
 
   // Hooks de datos
-  const { canciones, loading, createCancion, deleteCancion } = useCanciones({ activa: true })
+  const { canciones, loading, createCancion, updateCancion, deleteCancion } = useCanciones({ activa: true })
   const { categorias } = useCategorias()
 
   // Filtrar canciones
@@ -61,7 +71,21 @@ export default function RepertorioPage() {
   }
 
   const handleAddSong = async () => {
-    if (!newSong.nombre) return
+    if (!newSong.nombre) {
+      alert("Por favor ingresa el nombre de la canción")
+      return
+    }
+    
+    // Validar que no exista una canción con el mismo nombre y autor
+    const existingSong = canciones.find(
+      cancion => cancion.nombre.toLowerCase().trim() === newSong.nombre.toLowerCase().trim() &&
+               (cancion.autor || "").toLowerCase().trim() === (newSong.autor || "").toLowerCase().trim()
+    )
+    
+    if (existingSong) {
+      alert(`Ya existe una canción con el nombre "${newSong.nombre}" del autor "${newSong.autor || 'Desconocido'}"`)
+      return
+    }
     
     setIsSaving(true)
     try {
@@ -79,6 +103,7 @@ export default function RepertorioPage() {
       setIsDialogOpen(false)
     } catch (error) {
       console.error("Error al crear canción:", error)
+      alert("Error al crear la canción")
     } finally {
       setIsSaving(false)
     }
@@ -91,6 +116,43 @@ export default function RepertorioPage() {
       } catch (error) {
         console.error("Error al eliminar canción:", error)
       }
+    }
+  }
+
+  // Abrir diálogo de edición
+  const handleOpenEdit = (cancion: typeof canciones[0]) => {
+    setEditingId(cancion.id)
+    setEditSong({
+      nombre: cancion.nombre,
+      categoria_id: cancion.categoria_id?.toString() || "",
+      autor: cancion.autor || "",
+      tono: cancion.tono || "",
+      letra: cancion.letra || "",
+      acordes: cancion.acordes || "",
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  // Guardar edición
+  const handleEditSong = async () => {
+    if (!editSong.nombre || !editingId) return
+    
+    setIsSaving(true)
+    try {
+      await updateCancion(editingId, {
+        nombre: editSong.nombre,
+        autor: editSong.autor || null,
+        categoria_id: editSong.categoria_id ? parseInt(editSong.categoria_id) : null,
+        tono: editSong.tono || null,
+        letra: editSong.letra || null,
+        acordes: editSong.acordes || null,
+      })
+      setIsEditDialogOpen(false)
+      setEditingId(null)
+    } catch (error) {
+      console.error("Error al editar canción:", error)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -119,9 +181,19 @@ export default function RepertorioPage() {
               Agregar Canción
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[550px]">
+          <DialogContent className="max-w-[95vw] sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-xl font-display">Nueva Canción</DialogTitle>
+              <DialogTitle className="text-xl font-display flex items-center justify-between">
+                <span>Nueva Canción</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsDialogOpen(false)}
+                  className="h-8 w-8 rounded-full"
+                >
+                  ×
+                </Button>
+              </DialogTitle>
               <DialogDescription>
                 Agrega una nueva canción al repertorio del ministerio
               </DialogDescription>
@@ -194,11 +266,18 @@ export default function RepertorioPage() {
                 />
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2 sticky bottom-0 bg-background pt-4 border-t">
+              <Button 
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                className="w-full sm:w-auto"
+              >
+                Cancelar
+              </Button>
               <Button 
                 onClick={handleAddSong} 
                 disabled={isSaving || !newSong.nombre}
-                className="bg-gradient-to-r from-cuadrangular-red to-cuadrangular-purple text-white"
+                className="bg-gradient-to-r from-cuadrangular-red to-cuadrangular-purple text-white w-full sm:w-auto"
               >
                 {isSaving ? (
                   <>
@@ -212,59 +291,165 @@ export default function RepertorioPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Dialog Editar Canción */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-[95vw] sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-display">Editar Canción</DialogTitle>
+              <DialogDescription>
+                Modifica los detalles de la canción
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nombre *</Label>
+                  <Input
+                    value={editSong.nombre}
+                    onChange={(e) => setEditSong({ ...editSong, nombre: e.target.value })}
+                    placeholder="Nombre de la canción"
+                    className="border-border/50 focus:border-cuadrangular-purple"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Tono</Label>
+                  <Input
+                    value={editSong.tono}
+                    onChange={(e) => setEditSong({ ...editSong, tono: e.target.value })}
+                    placeholder="Ej: G, Am, D"
+                    className="border-border/50 focus:border-cuadrangular-purple"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Categoría</Label>
+                  <Select value={editSong.categoria_id} onValueChange={(value) => setEditSong({ ...editSong, categoria_id: value })}>
+                    <SelectTrigger className="border-border/50 focus:border-cuadrangular-purple">
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categorias.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id.toString()}>
+                          {cat.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Autor</Label>
+                  <Input
+                    value={editSong.autor}
+                    onChange={(e) => setEditSong({ ...editSong, autor: e.target.value })}
+                    placeholder="Artista o banda"
+                    className="border-border/50 focus:border-cuadrangular-purple"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Letra</Label>
+                <Textarea
+                  value={editSong.letra}
+                  onChange={(e) => setEditSong({ ...editSong, letra: e.target.value })}
+                  placeholder="Letra de la canción..."
+                  rows={4}
+                  className="border-border/50 focus:border-cuadrangular-purple resize-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Acordes</Label>
+                <Textarea
+                  value={editSong.acordes}
+                  onChange={(e) => setEditSong({ ...editSong, acordes: e.target.value })}
+                  placeholder="Progresión de acordes..."
+                  rows={3}
+                  className="border-border/50 focus:border-cuadrangular-purple resize-none font-mono text-sm"
+                />
+              </div>
+            </div>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+                className="w-full sm:w-auto"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleEditSong} 
+                disabled={isSaving || !editSong.nombre}
+                className="bg-gradient-to-r from-cuadrangular-red to-cuadrangular-purple text-white w-full sm:w-auto"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  "Guardar Cambios"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
           FILTROS
           ═══════════════════════════════════════════════════════════════════ */}
       <Card className="border-border/50 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Búsqueda */}
-            <div className="relative flex-1">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col gap-3">
+            {/* Primera fila: Búsqueda */}
+            <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nombre o autor..."
+                placeholder="Buscar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 border-border/50 focus:border-cuadrangular-cyan"
               />
             </div>
             
-            {/* Filtro categoría */}
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-48 border-border/50">
-                <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas</SelectItem>
-                {categorias.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id.toString()}>
-                    {cat.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {/* Vista */}
-            <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg">
-              <Button
-                variant={viewMode === "grid" ? "secondary" : "ghost"}
-                size="icon"
-                onClick={() => setViewMode("grid")}
-                className="h-8 w-8"
-              >
-                <Grid3X3 className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "secondary" : "ghost"}
-                size="icon"
-                onClick={() => setViewMode("list")}
-                className="h-8 w-8"
-              >
-                <ListMusic className="w-4 h-4" />
-              </Button>
+            {/* Segunda fila: Filtro y Vista */}
+            <div className="flex items-center gap-2">
+              {/* Filtro categoría */}
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="flex-1 sm:w-48 sm:flex-none border-border/50">
+                  <Filter className="w-4 h-4 mr-2 shrink-0" />
+                  <SelectValue placeholder="Categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas</SelectItem>
+                  {categorias.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id.toString()}>
+                      {cat.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* Vista */}
+              <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg shrink-0">
+                <Button
+                  variant={viewMode === "grid" ? "secondary" : "ghost"}
+                  size="icon"
+                  onClick={() => setViewMode("grid")}
+                  className="h-8 w-8"
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "secondary" : "ghost"}
+                  size="icon"
+                  onClick={() => setViewMode("list")}
+                  className="h-8 w-8"
+                >
+                  <ListMusic className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -314,12 +499,17 @@ export default function RepertorioPage() {
                   <h3 className="font-semibold text-lg mb-1 line-clamp-1">{cancion.nombre}</h3>
                   <p className="text-sm text-muted-foreground mb-3">{cancion.autor || "Desconocido"}</p>
                   
-                  <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">
                       Tono: <span className="font-semibold text-cuadrangular-purple">{cancion.tono || "-"}</span>
                     </span>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => handleOpenEdit(cancion)}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button 
@@ -346,32 +536,39 @@ export default function RepertorioPage() {
                 return (
                   <div 
                     key={cancion.id} 
-                    className="group flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+                    className="group flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 hover:bg-muted/30 transition-colors gap-3"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cuadrangular-red/20 to-cuadrangular-purple/20 flex items-center justify-center">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cuadrangular-red/20 to-cuadrangular-purple/20 flex items-center justify-center shrink-0">
                         <Music className="w-5 h-5 text-cuadrangular-red" />
                       </div>
-                      <div>
-                        <h4 className="font-semibold">{cancion.nombre}</h4>
-                        <p className="text-sm text-muted-foreground">{cancion.autor || "Desconocido"}</p>
+                      <div className="min-w-0">
+                        <h4 className="font-semibold truncate">{cancion.nombre}</h4>
+                        <p className="text-sm text-muted-foreground truncate">{cancion.autor || "Desconocido"}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <Badge 
-                        variant="secondary" 
-                        className={categoriaNombre === "Alabanza" 
-                          ? "bg-cuadrangular-red/10 text-cuadrangular-red border-0" 
-                          : "bg-cuadrangular-cyan/10 text-cuadrangular-cyan border-0"
-                        }
-                      >
-                        {categoriaNombre}
-                      </Badge>
-                      <span className="text-sm font-medium text-cuadrangular-purple w-8 text-center">
-                        {cancion.tono || "-"}
-                      </span>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 pl-13 sm:pl-0">
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant="secondary" 
+                          className={`text-xs ${categoriaNombre === "Alabanza" 
+                            ? "bg-cuadrangular-red/10 text-cuadrangular-red border-0" 
+                            : "bg-cuadrangular-cyan/10 text-cuadrangular-cyan border-0"
+                          }`}
+                        >
+                          {categoriaNombre}
+                        </Badge>
+                        <span className="text-xs sm:text-sm font-medium text-cuadrangular-purple">
+                          {cancion.tono || "-"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleOpenEdit(cancion)}
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button 

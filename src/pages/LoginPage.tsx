@@ -15,6 +15,7 @@ interface FormData {
   password: string
   nombre: string
   apellido: string
+  telefono: string
 }
 
 export default function LoginPage() {
@@ -25,7 +26,8 @@ export default function LoginPage() {
     email: "",
     password: "",
     nombre: "",
-    apellido: ""
+    apellido: "",
+    telefono: ""
   })
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -52,7 +54,7 @@ export default function LoginPage() {
           setError("Por favor completa tu nombre y apellido")
           return
         }
-        await signUp(formData.email, formData.password, formData.nombre, formData.apellido)
+        await signUp(formData.email, formData.password, formData.nombre, formData.apellido, formData.telefono)
         setSuccess("¡Cuenta creada! Revisa tu correo para confirmar.")
         setIsRegister(false)
       } else {
@@ -220,33 +222,49 @@ export default function LoginPage() {
 
               {/* Nombre y Apellido (solo registro) */}
               {isRegister && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nombre" className="text-sm font-medium">
-                      Nombre
-                    </Label>
-                    <Input
-                      id="nombre"
-                      type="text"
-                      placeholder="Tu nombre"
-                      className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background focus:border-cuadrangular-purple"
-                      value={formData.nombre}
-                      onChange={handleInputChange("nombre")}
-                      required={isRegister}
-                    />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nombre" className="text-sm font-medium">
+                        Nombre
+                      </Label>
+                      <Input
+                        id="nombre"
+                        type="text"
+                        placeholder="Tu nombre"
+                        className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background focus:border-cuadrangular-purple"
+                        value={formData.nombre}
+                        onChange={handleInputChange("nombre")}
+                        required={isRegister}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="apellido" className="text-sm font-medium">
+                        Apellido
+                      </Label>
+                      <Input
+                        id="apellido"
+                        type="text"
+                        placeholder="Tu apellido"
+                        className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background focus:border-cuadrangular-purple"
+                        value={formData.apellido}
+                        onChange={handleInputChange("apellido")}
+                        required={isRegister}
+                      />
+                    </div>
                   </div>
+                  
                   <div className="space-y-2">
-                    <Label htmlFor="apellido" className="text-sm font-medium">
-                      Apellido
+                    <Label htmlFor="telefono" className="text-sm font-medium">
+                      Teléfono (opcional)
                     </Label>
                     <Input
-                      id="apellido"
-                      type="text"
-                      placeholder="Tu apellido"
+                      id="telefono"
+                      type="tel"
+                      placeholder="+57 300 123 4567"
                       className="h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background focus:border-cuadrangular-purple"
-                      value={formData.apellido}
-                      onChange={handleInputChange("apellido")}
-                      required={isRegister}
+                      value={formData.telefono}
+                      onChange={handleInputChange("telefono")}
                     />
                   </div>
                 </div>

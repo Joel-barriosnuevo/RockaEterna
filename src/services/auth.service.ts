@@ -11,6 +11,7 @@ export interface RegisterData {
   password: string
   nombre: string
   apellido: string
+  telefono?: string
 }
 
 export const authService = {
@@ -30,7 +31,7 @@ export const authService = {
   // ═══════════════════════════════════════════════════════════════════════════
   // REGISTRO
   // ═══════════════════════════════════════════════════════════════════════════
-  async register({ email, password, nombre, apellido }: RegisterData) {
+  async register({ email, password, nombre, apellido, telefono }: RegisterData) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -38,6 +39,7 @@ export const authService = {
         data: {
           nombre,
           apellido,
+          telefono,
         },
       },
     })

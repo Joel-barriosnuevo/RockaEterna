@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Link } from "react-router-dom"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
@@ -16,92 +16,113 @@ import {
   Mic, 
   Guitar, 
   ChevronRight,
-  TrendingUp,
   Sparkles,
-  Play
+  Play,
+  Loader2
 } from "lucide-react"
+import { useAuth } from "../../contexts/AuthContext"
+import { useCanciones, useMiembros, useProgramaciones } from "../../hooks"
 
-interface Programacion {
-  id: number
-  fecha: string
-  hora: string
-  tipo: string
-  rol: string
-}
-
-interface Cancion {
-  id: number
-  nombre: string
-  categoria: string
-  autor: string
-}
-
-interface Miembro {
-  id: number
-  nombre: string
-  rol: string
-  iniciales: string
-  color: string
-}
+// Colores para avatares
+const AVATAR_COLORS = [
+  "from-cuadrangular-red to-cuadrangular-purple",
+  "from-cuadrangular-cyan to-cuadrangular-purple",
+  "from-cuadrangular-yellow to-cuadrangular-red",
+  "from-cuadrangular-purple to-cuadrangular-cyan",
+  "from-cuadrangular-red to-cuadrangular-cyan",
+  "from-cuadrangular-yellow to-cuadrangular-purple",
+]
 
 export default function DashboardPage() {
+  const { profile } = useAuth()
+  const isAdmin = profile?.is_admin ?? false
+  const userName = profile?.nombre || "Usuario"
+  
   const [greeting, setGreeting] = useState("")
-  const [loading, setLoading] = useState(true)
+
+  // Cargar datos reales de Supabase
+  const { canciones, loading: loadingCanciones } = useCanciones()
+  const { miembros, loading: loadingMiembros } = useMiembros()
+  const { programaciones, loading: loadingProgramaciones } = useProgramaciones()
+
+  const loading = loadingCanciones || loadingMiembros || loadingProgramaciones
 
   useEffect(() => {
     const hour = new Date().getHours()
     if (hour < 12) setGreeting("Buenos días")
     else if (hour < 18) setGreeting("Buenas tardes")
     else setGreeting("Buenas noches")
-
-    const timer = setTimeout(() => setLoading(false), 800)
-    return () => clearTimeout(timer)
   }, [])
 
-  const proximasProgramaciones: Programacion[] = [
-    { id: 1, fecha: "2025-04-17", hora: "9:00 AM", tipo: "Servicio Principal", rol: "Voz Líder" },
-    { id: 2, fecha: "2025-04-21", hora: "7:00 PM", tipo: "Servicio de Oración", rol: "Guitarra" },
-  ]
+  // Próximas programaciones (futuras, ordenadas por fecha)
+  const proximasProgramaciones = useMemo(() => {
+    const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0)
+    
+    return programaciones
+      .filter(prog => new Date(prog.fecha) >= hoy)
+      .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
+      .slice(0, 3)
+      .map(prog => ({
+        id: prog.id,
+        fecha: prog.fecha,
+        hora: prog.hora || "9:00 AM",
+        tipo: (prog as any).tipo_servicio?.nombre || "Servicio",
+        miembrosCount: (prog as any).programacion_miembros?.length || 0
+      }))
+  }, [programaciones])
 
-  const ultimasCanciones: Cancion[] = [
-    { id: 1, nombre: "Grande y Fuerte", categoria: "Alabanza", autor: "Miel San Marcos" },
-    { id: 2, nombre: "Dios Incomparable", categoria: "Adoración", autor: "Generación 12" },
-    { id: 3, nombre: "Tu Amor No Se Rinde", categoria: "Adoración", autor: "Hillsong" },
-  ]
+  // Últimas canciones (las más recientes)
+  const ultimasCanciones = useMemo(() => {
+    return [...canciones]
+      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+      .slice(0, 3)
+      .map(cancion => ({
+        id: cancion.id,
+        nombre: cancion.nombre,
+        categoria: (cancion as any).categoria?.nombre || "Sin categoría",
+        autor: cancion.autor || "Desconocido"
+      }))
+  }, [canciones])
 
-  const miembrosEquipo: Miembro[] = [
-    { id: 1, nombre: "Carlos Pérez", rol: "Voz Líder", iniciales: "CP", color: "from-cuadrangular-red to-cuadrangular-purple" },
-    { id: 2, nombre: "María Rodríguez", rol: "Piano", iniciales: "MR", color: "from-cuadrangular-cyan to-cuadrangular-purple" },
-    { id: 3, nombre: "Juan Gómez", rol: "Batería", iniciales: "JG", color: "from-cuadrangular-yellow to-cuadrangular-red" },
-    { id: 4, nombre: "Ana Martínez", rol: "Coros", iniciales: "AM", color: "from-cuadrangular-purple to-cuadrangular-cyan" },
-  ]
+  // Miembros activos del equipo
+  const miembrosEquipo = useMemo(() => {
+    return miembros
+      .filter(m => m.activo)
+      .slice(0, 4)
+      .map((miembro, index) => ({
+        id: miembro.id,
+        nombre: `${miembro.nombre} ${miembro.apellido}`,
+        rol: (miembro as any).rol?.nombre || "Sin rol",
+        iniciales: `${miembro.nombre.charAt(0)}${miembro.apellido.charAt(0)}`,
+        color: AVATAR_COLORS[index % AVATAR_COLORS.length]
+      }))
+  }, [miembros])
 
-  const estadisticas = [
+  // Estadísticas reales
+  const estadisticas = useMemo(() => [
     { 
       title: "Canciones", 
-      value: "124", 
-      change: "+12", 
+      value: canciones.length.toString(), 
       icon: Music,
       color: "cuadrangular-red",
       gradient: "from-cuadrangular-red/20 to-cuadrangular-red/5"
     },
     { 
       title: "Programaciones", 
-      value: "38", 
-      change: "+5", 
+      value: programaciones.length.toString(), 
       icon: Calendar,
       color: "cuadrangular-cyan",
       gradient: "from-cuadrangular-cyan/20 to-cuadrangular-cyan/5"
     },
     { 
       title: "Miembros", 
-      value: "12", 
-      change: "+2", 
+      value: miembros.filter(m => m.activo).length.toString(), 
       icon: Users,
       color: "cuadrangular-purple",
       gradient: "from-cuadrangular-purple/20 to-cuadrangular-purple/5"
     },
-  ]
+  ], [canciones.length, programaciones.length, miembros])
 
   return (
     <div className="space-y-8">
@@ -117,7 +138,7 @@ export default function DashboardPage() {
             </span>
           </div>
           <h1 className="text-3xl font-display font-bold">
-            {greeting}, <span className="text-cuadrangular-purple">Admin</span>
+            {greeting}, <span className="text-cuadrangular-purple">{userName}</span>
           </h1>
           <p className="text-muted-foreground mt-1">
             Aquí tienes un resumen de la actividad del ministerio
@@ -131,12 +152,14 @@ export default function DashboardPage() {
               Ver Repertorio
             </Link>
           </Button>
-          <Button asChild className="bg-gradient-to-r from-cuadrangular-red to-cuadrangular-purple hover:opacity-90 text-white shadow-glow-purple">
-            <Link to="/dashboard/programaciones/nueva">
-              <Play className="w-4 h-4 mr-2" />
-              Nueva Programación
-            </Link>
-          </Button>
+          {isAdmin && (
+            <Button asChild className="bg-gradient-to-r from-cuadrangular-red to-cuadrangular-purple hover:opacity-90 text-white shadow-glow-purple">
+              <Link to="/dashboard/programaciones/nueva">
+                <Play className="w-4 h-4 mr-2" />
+                Nueva Programación
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -154,12 +177,9 @@ export default function DashboardPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                  <p className="text-4xl font-display font-bold mt-2">{stat.value}</p>
-                  <div className="flex items-center gap-1 mt-2">
-                    <TrendingUp className={`w-4 h-4 text-${stat.color}`} />
-                    <span className={`text-sm font-medium text-${stat.color}`}>{stat.change}</span>
-                    <span className="text-xs text-muted-foreground">este mes</span>
-                  </div>
+                  <p className="text-4xl font-display font-bold mt-2">
+                    {loading ? <Loader2 className="w-8 h-8 animate-spin" /> : stat.value}
+                  </p>
                 </div>
                 <div className={`w-14 h-14 rounded-2xl bg-${stat.color} flex items-center justify-center`}>
                   <stat.icon className="w-7 h-7 text-white" />
@@ -205,7 +225,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-xl font-display">Próximas Programaciones</CardTitle>
-                  <CardDescription>Tus próximas asignaciones en los servicios</CardDescription>
+                  <CardDescription>Los próximos servicios programados</CardDescription>
                 </div>
                 <Button variant="ghost" size="sm" asChild className="text-cuadrangular-purple">
                   <Link to="/dashboard/programaciones">
@@ -215,32 +235,32 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="space-y-4">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="h-24 bg-muted/50 animate-pulse rounded-xl" />
-                  ))}
+              {loadingProgramaciones ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-cuadrangular-purple" />
+                </div>
+              ) : proximasProgramaciones.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Calendar className="w-12 h-12 mb-2 opacity-30" />
+                  <p>No hay programaciones próximas</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {proximasProgramaciones.map((prog) => (
-                    <div
+                    <Link
                       key={prog.id}
-                      className="group flex items-center justify-between p-4 rounded-xl border border-border/50 hover:border-cuadrangular-purple/30 hover:bg-gradient-to-r hover:from-cuadrangular-purple/5 hover:to-transparent transition-all duration-300"
+                      to={`/dashboard/programaciones/${prog.id}`}
+                      className="group flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-xl border border-border/50 hover:border-cuadrangular-purple/30 hover:bg-gradient-to-r hover:from-cuadrangular-purple/5 hover:to-transparent transition-all duration-300 gap-3"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                          prog.rol.includes("Voz") 
-                            ? "bg-cuadrangular-red/10 text-cuadrangular-red" 
-                            : "bg-cuadrangular-cyan/10 text-cuadrangular-cyan"
-                        }`}>
-                          {prog.rol.includes("Voz") ? <Mic className="w-6 h-6" /> : <Guitar className="w-6 h-6" />}
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center bg-cuadrangular-cyan/10 text-cuadrangular-cyan shrink-0">
+                          <Mic className="w-5 h-5 sm:w-6 sm:h-6" />
                         </div>
-                        <div>
-                          <h4 className="font-semibold">{prog.tipo}</h4>
-                          <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                        <div className="min-w-0">
+                          <h4 className="font-semibold text-sm sm:text-base truncate">{prog.tipo}</h4>
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-muted-foreground mt-1">
                             <span className="flex items-center gap-1">
-                              <Calendar className="w-3.5 h-3.5" />
+                              <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                               {new Date(prog.fecha).toLocaleDateString("es-ES", {
                                 weekday: "short",
                                 day: "numeric",
@@ -248,21 +268,19 @@ export default function DashboardPage() {
                               })}
                             </span>
                             <span className="flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5" />
+                              <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                               {prog.hora}
                             </span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Badge variant="secondary" className="bg-cuadrangular-purple/10 text-cuadrangular-purple border-0">
-                          {prog.rol}
+                      <div className="flex items-center justify-between sm:justify-end gap-2 pl-13 sm:pl-0">
+                        <Badge variant="secondary" className="bg-cuadrangular-purple/10 text-cuadrangular-purple border-0 text-xs">
+                          {prog.miembrosCount} miembros
                         </Badge>
-                        <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                          <ArrowRight className="w-4 h-4" />
-                        </Button>
+                        <ArrowRight className="w-4 h-4 text-muted-foreground" />
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}
@@ -287,15 +305,18 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-20 bg-muted/50 animate-pulse rounded-xl" />
-                  ))}
+              {loadingCanciones ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-cuadrangular-cyan" />
+                </div>
+              ) : ultimasCanciones.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Music className="w-12 h-12 mb-2 opacity-30" />
+                  <p>No hay canciones en el repertorio</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {ultimasCanciones.map((cancion, index) => (
+                  {ultimasCanciones.map((cancion) => (
                     <div
                       key={cancion.id}
                       className="group flex items-center justify-between p-4 rounded-xl border border-border/50 hover:border-cuadrangular-cyan/30 hover:bg-gradient-to-r hover:from-cuadrangular-cyan/5 hover:to-transparent transition-all duration-300"
@@ -339,11 +360,14 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="h-24 bg-muted/50 animate-pulse rounded-xl" />
-                  ))}
+              {loadingMiembros ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-cuadrangular-yellow" />
+                </div>
+              ) : miembrosEquipo.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Users className="w-12 h-12 mb-2 opacity-30" />
+                  <p>No hay miembros en el equipo</p>
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">

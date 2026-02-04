@@ -14,7 +14,7 @@ interface AuthContextType {
   loading: boolean
   initialized: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string, nombre: string, apellido: string) => Promise<void>
+  signUp: (email: string, password: string, nombre: string, apellido: string, telefono?: string) => Promise<void>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<Usuario>) => Promise<void>
   refreshProfile: () => Promise<void>
@@ -118,10 +118,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const signUp = async (email: string, password: string, nombre: string, apellido: string) => {
+  const signUp = async (email: string, password: string, nombre: string, apellido: string, telefono?: string) => {
     setLoading(true)
     try {
-      await authService.register({ email, password, nombre, apellido })
+      await authService.register({ email, password, nombre, apellido, telefono })
     } finally {
       setLoading(false)
     }

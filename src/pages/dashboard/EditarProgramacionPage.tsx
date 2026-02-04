@@ -255,35 +255,35 @@ export default function EditarProgramacionPage() {
   return (
     <div className="space-y-6">
       {/* HEADER */}
-      <div className="flex items-center justify-between animate-fade-in-up">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in-up">
+        <div className="flex items-center gap-3 sm:gap-4">
           <Button 
             variant="outline" 
             size="icon" 
             onClick={() => navigate("/dashboard/programaciones")}
-            className="border-border/50 hover:bg-cuadrangular-cyan/10"
+            className="border-border/50 hover:bg-cuadrangular-cyan/10 shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-display font-bold">Editar Programación</h1>
-            <p className="text-muted-foreground">Modifica los detalles de la programación</p>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-3xl font-display font-bold truncate">Editar Programación</h1>
+            <p className="text-sm text-muted-foreground hidden sm:block">Modifica los detalles de la programación</p>
           </div>
         </div>
         
         {/* Botón Eliminar */}
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="destructive" disabled={isDeleting}>
+            <Button variant="destructive" size="sm" disabled={isDeleting} className="self-end sm:self-auto">
               {isDeleting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
               ) : (
-                <Trash2 className="w-4 h-4 mr-2" />
+                <Trash2 className="w-4 h-4 sm:mr-2" />
               )}
-              Eliminar
+              <span className="hidden sm:inline">Eliminar</span>
             </Button>
           </AlertDialogTrigger>
-          <AlertDialogContent>
+          <AlertDialogContent className="max-w-[90vw] sm:max-w-lg">
             <AlertDialogHeader>
               <AlertDialogTitle>¿Eliminar programación?</AlertDialogTitle>
               <AlertDialogDescription>
@@ -291,9 +291,9 @@ export default function EditarProgramacionPage() {
                 y todos los miembros asignados.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+              <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="w-full sm:w-auto bg-destructive text-destructive-foreground">
                 Eliminar
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -497,12 +497,12 @@ export default function EditarProgramacionPage() {
         </div>
 
         {/* Botones de acción */}
-        <div className="flex justify-end gap-4 mt-6 animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 mt-6 animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
           <Button 
             type="button" 
             variant="outline" 
             onClick={() => navigate("/dashboard/programaciones")}
-            className="border-border/50"
+            className="border-border/50 w-full sm:w-auto"
             disabled={isSaving}
           >
             Cancelar
@@ -510,7 +510,7 @@ export default function EditarProgramacionPage() {
           <Button 
             type="submit"
             disabled={isSaving || !date || !formData.tipo}
-            className="bg-gradient-to-r from-cuadrangular-cyan to-cuadrangular-purple hover:opacity-90 text-white shadow-glow-cyan"
+            className="bg-gradient-to-r from-cuadrangular-cyan to-cuadrangular-purple hover:opacity-90 text-white shadow-glow-cyan w-full sm:w-auto"
           >
             {isSaving ? (
               <>
