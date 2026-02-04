@@ -39,6 +39,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadProfile = useCallback(async (userId: string) => {
     try {
       const userProfile = await authService.getUserProfile(userId)
+      
+      if (!userProfile) {
+        // Si no existe en la tabla usuarios, hacer logout
+        console.warn('Usuario no encontrado en la tabla usuarios, cerrando sesión')
+        await supabase.auth.signOut()
+        setProfile(null)
+        return
+      }
+      
+      // Verificar que el usuario esté activo
+      if (userProfile.activo === false) {
+        console.warn('Usuario desactivado, cerrando sesión')
+        await supabase.auth.signOut()
+        setProfile(null)
+        return
+      }
+      
       setProfile(userProfile)
     } catch (error) {
       console.error('Error cargando perfil:', error)
@@ -104,17 +121,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // MÉTODOS DE AUTENTICACIÓN
   // ═══════════════════════════════════════════════════════════════════════════
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    
-    if (error) throw error
-    
-    if (data.user) {
-      setUser(data.user)
-      setSession(data.session)
-      loadProfile(data.user.id).catch(console.error)
+    setLoading(true)
+    try {
+      // 1. Autenticar con Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      
+      if (error) throw error
+      
+      if (data.user) {
+        // 2. Verificar que el usuario exista en la tabla usuarios
+        const userProfile = await authService.getUserProfile(data.user.id)
+        
+        if (!userProfile) {
+          // Si no existe en la tabla usuarios, hacer logout y lanzar error
+          await supabase.auth.signOut()
+          throw new Error('Usuario no encontrado en el sistema. Por favor, contacta al administrador.')
+        }
+        
+        // 3. Verificar que el usuario esté activo (si tiene el campo activo)
+        if (userProfile.activo === false) {
+          await supabase.auth.signOut()
+          throw new Error('Tu cuenta ha sido desactivada. Por favor, contacta al administrador.')
+        }
+        
+        // 4. Si todo está bien, actualizar estado
+        setUser(data.user)
+        setSession(data.session)
+        setProfile(userProfile)
+      }
+    } finally {
+      setLoading(false)
     }
   }
 

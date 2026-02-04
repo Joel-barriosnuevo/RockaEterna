@@ -45,6 +45,23 @@ export default function LoginPage() {
     e.preventDefault()
     setError("")
     setSuccess("")
+    
+    // Validaciones básicas
+    if (!formData.email.trim()) {
+      setError("Por favor ingresa tu correo electrónico.")
+      return
+    }
+    
+    if (!formData.password.trim()) {
+      setError("Por favor ingresa tu contraseña.")
+      return
+    }
+    
+    if (!isRegister && formData.password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres.")
+      return
+    }
+    
     setIsLoading(true)
 
     try {
@@ -64,14 +81,22 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       console.error("Auth error:", err)
-      if (err.message?.includes("Invalid login")) {
+      if (err.message?.includes("Invalid login credentials")) {
         setError("Credenciales incorrectas. Inténtalo de nuevo.")
       } else if (err.message?.includes("Email not confirmed")) {
         setError("Por favor confirma tu email antes de iniciar sesión.")
       } else if (err.message?.includes("User already registered")) {
         setError("Este correo ya está registrado. Intenta iniciar sesión.")
+      } else if (err.message?.includes("Usuario no encontrado en el sistema")) {
+        setError("Usuario no encontrado en el sistema. Por favor, contacta al administrador.")
+      } else if (err.message?.includes("cuenta ha sido desactivada")) {
+        setError("Tu cuenta ha sido desactivada. Por favor, contacta al administrador.")
+      } else if (err.message?.includes("Invalid email")) {
+        setError("El formato del correo electrónico no es válido.")
+      } else if (err.message?.includes("Password should be at least")) {
+        setError("La contraseña debe tener al menos 6 caracteres.")
       } else {
-        setError(err.message || "Error al procesar la solicitud.")
+        setError(err.message || "Error al procesar la solicitud. Inténtalo de nuevo.")
       }
     } finally {
       setIsLoading(false)
