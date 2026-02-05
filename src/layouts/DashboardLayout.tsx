@@ -70,8 +70,24 @@ export default function DashboardLayout() {
 
   // Función para cerrar sesión
   const handleLogout = async () => {
-    await signOut()
-    navigate("/", { replace: true })
+    try {
+      // Mostrar indicador de carga (opcional)
+      console.log('Cerrando sesión y limpiando caché...')
+      
+      // Ejecutar el logout completo con limpieza de caché
+      await signOut()
+      
+      // La redirección se maneja automáticamente en el signOut para móviles
+      // Para desktop, redirigir manualmente si no hay redirección automática
+      if (!/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        // En desktop, usar navigate para una transición suave
+        navigate("/", { replace: true })
+      }
+    } catch (error) {
+      console.error('Error durante el logout:', error)
+      // Forzar redirección incluso si hay error
+      window.location.href = '/'
+    }
   }
 
   useEffect(() => {

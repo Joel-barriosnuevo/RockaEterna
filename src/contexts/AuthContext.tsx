@@ -3,6 +3,7 @@ import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { authService } from '../services/auth.service'
 import type { Usuario } from '../types/database.types'
+import { useDeviceDetection } from '../hooks/useDeviceDetection'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TIPOS
@@ -172,16 +173,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null)
     setSession(null)
     
-    // Limpiar localStorage de Supabase
-    const keys = Object.keys(localStorage)
-    keys.forEach(key => {
-      if (key.startsWith('sb-')) {
-        localStorage.removeItem(key)
+    try {
+      // 1. Limpiar localStorage completamente
+      if (typeof window !== 'undefined') {
+        // Limpiar localStorage de Supabase
+        const keys = Object.keys(localStorage)
+        keys.forEach(key => {
+          if (key.startsWith('sb-') || key.includes('supabase')) {
+            localStorage.removeItem(key)
+          }
+        })
+        
+        // Limpiar sessionStorage
+        const sessionKeys = Object.keys(sessionStorage)
+        sessionKeys.forEach(key => {
+          if (key.startsWith('sb-') || key.includes('supabase')) {
+            sessionStorage.removeItem(key)
+          }
+        })
+        
+        // 2. Limpiar cookies relacionadas con Supabase
+        document.cookie.split(';').forEach(cookie => {
+          const cookieName = cookie.trim().split('=')[0]
+          if (cookieName.includes('supabase') || cookieName.includes('sb-')) {
+            document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+            document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`
+          }
+        })
+        
+        // 3. Forzar recarga de la página para limpiar memoria
+        if ('caches' in window) {
+          // Limpiar caché de la aplicación
+          const cacheNames = await caches.keys()
+          await Promise.all(
+            cacheNames.map(cacheName => caches.delete(cacheName))
+          )
+        }
+        
+        // 4. Limpiar cualquier dato persistente en IndexedDB
+        if ('indexedDB' in window) {
+          try {
+            const databases = await indexedDB.databases()
+            await Promise.all(
+              databases.map(db => indexedDB.deleteDatabase(db.name!))
+            )
+          } catch (error) {
+            console.warn('Error limpiando IndexedDB:', error)
+          }
+        }
       }
-    })
-    
-    // Intentar signOut de Supabase (sin esperar)
-    supabase.auth.signOut().catch(console.error)
+      
+      // 5. Hacer logout de Supabase
+      await supabase.auth.signOut()
+      
+      // 6. Forzar recarga completa en móviles
+      if (typeof window !== 'undefined' && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        // En dispositivos móviles, forzar una recarga completa
+        setTimeout(() => {
+          window.location.href = '/login'
+        }, 100)
+      }
+      
+    } catch (error) {
+      console.error('Error durante el logout:', error)
+      // Forzar redirección incluso si hay error
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login'
+      }
+    }
   }
 
   const updateProfile = async (updates: Partial<Usuario>) => {

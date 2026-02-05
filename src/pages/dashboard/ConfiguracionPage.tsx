@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, startTransition } from "react"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card"
 import { Input } from "../../components/ui/input"
@@ -9,15 +9,13 @@ import { Label } from "../../components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { Checkbox } from "../../components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
-import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar"
 import { ImageUpload } from "../../components/ui/image-upload"
 import { Alert, AlertDescription } from "../../components/ui/alert"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../components/ui/dialog"
-import { Save, User, Bell, Key, Palette, Camera, Shield, Loader2, Check, Eye, EyeOff, Edit, Image as ImageIcon, Trash2, UserCircle } from "lucide-react"
+import { Save, User, Bell, Key, Palette, Camera, Shield, Loader2, Eye, EyeOff, Edit, Trash2, UserCircle } from "lucide-react"
 import { useAuth } from "../../contexts/AuthContext"
 import { useAvatarUpload } from "../../hooks/useImageUpload"
-import { storageService } from "../../services/storage.service"
 
 export default function ConfiguracionPage() {
   const { profile, refreshProfile } = useAuth()
@@ -36,7 +34,7 @@ export default function ConfiguracionPage() {
     apellido: "Usuario",
     email: "admin@example.com",
     telefono: "+57 300 123 4567",
-    avatar_url: null, // Inicializar como null en lugar de profile?.avatar_url
+    avatar_url: null as string | null,
   })
 
   const [notificaciones, setNotificaciones] = useState({
@@ -60,18 +58,19 @@ export default function ConfiguracionPage() {
 
   const [showAvatarDialog, setShowAvatarDialog] = useState(false)
   const [avatarAction, setAvatarAction] = useState<'view' | 'edit' | null>(null)
+  const [isModalClosing, setIsModalClosing] = useState(false)
 
   // Hook para subida de avatar
   const { uploadFile: uploadAvatar, isUploading, error: uploadError, progress } = useAvatarUpload(profile?.id)
 
-  // Inicializar perfil cuando el usuario autenticado esté disponible
+  // Inicializar perfil cuando el usuario autenticado esté disponible (simplificado)
   useEffect(() => {
     console.log('🔍 [useEffect - Perfil] profile cambió:', profile)
-    if (profile) {
-      // Extraer la URL del avatar si es un objeto
+    if (profile && !perfil.avatar_url && perfil.nombre === "Admin") {
+      // Solo actualizar si es la primera carga o si los datos básicos cambiaron
       const avatarUrl = typeof profile.avatar_url === 'string' 
         ? profile.avatar_url 
-        : profile.avatar_url?.url || null
+        : (profile.avatar_url as any)?.url || null
 
       const updatedPerfil = {
         nombre: profile.nombre || "",
@@ -84,7 +83,7 @@ export default function ConfiguracionPage() {
       console.log('🔄 Inicializando perfil completo desde profile:', updatedPerfil)
       setPerfil(updatedPerfil)
     }
-  }, [profile])
+  }, [profile?.id]) // Solo depender del ID para evitar múltiples disparos
 
   // useEffect - Avatar eliminado temporalmente para evitar bucle infinito
   // useEffect(() => {
@@ -129,14 +128,29 @@ export default function ConfiguracionPage() {
     }
   }, [updateMessage])
 
-  // Efecto de limpieza para asegurar que el modal se cierre correctamente
+  // Efecto de limpieza para asegurar que el modal se cierre correctamente (desactivado)
+  // useEffect(() => {
+  //   console.log('🔍 [useEffect - Limpieza] Componente montado')
+  //   return () => {
+  //     console.log('🧹 [useEffect - Limpieza] Componente desmontado - limpiando estados del modal')
+  //     setShowAvatarDialog(false)
+  //     setAvatarAction(null)
+  //     setIsModalClosing(false)
+  //   }
+  // }, [])
+
+  // Efecto para manejar el cierre del modal
   useEffect(() => {
-    console.log('🔍 [useEffect - Limpieza] Componente montado')
-    return () => {
-      console.log('🧹 [useEffect - Limpieza] Componente desmontado - cerrando modal')
-      setShowAvatarDialog(false)
+    if (isModalClosing) {
+      const timer = setTimeout(() => {
+        console.log('🔄 [useEffect - Modal] Finalizando cierre del modal')
+        setIsModalClosing(false)
+        setAvatarAction(null)
+      }, 300) // Esperar a que termine la animación
+
+      return () => clearTimeout(timer)
     }
-  }, [])
+  }, [isModalClosing])
 
   // Debug: Mostrar estado actual del perfil (comentado para evitar bucle infinito)
   // useEffect(() => {
@@ -180,32 +194,39 @@ export default function ConfiguracionPage() {
     }
   }
 
-  // Validación en tiempo real
-  useEffect(() => {
-    console.log('🔍 [useEffect - Validación] Campos de perfil cambiados:', {
-      nombre: perfil.nombre,
-      apellido: perfil.apellido,
-      email: perfil.email,
-      telefono: perfil.telefono
-    })
-    const newErrors: typeof fieldErrors = {}
-    
-    // Validar cada campo
-    const nombreError = validateField('nombre', perfil.nombre)
-    if (nombreError) newErrors.nombre = nombreError
-    
-    const apellidoError = validateField('apellido', perfil.apellido)
-    if (apellidoError) newErrors.apellido = apellidoError
-    
-    const emailError = validateField('email', perfil.email)
-    if (emailError) newErrors.email = emailError
-    
-    const telefonoError = validateField('telefono', perfil.telefono)
-    if (telefonoError) newErrors.telefono = telefonoError
-    
-    console.log('🔍 [useEffect - Validación] Errores encontrados:', newErrors)
-    setFieldErrors(newErrors)
-  }, [perfil.nombre, perfil.apellido, perfil.email, perfil.telefono])
+  // Validación en tiempo real (completamente desactivada para evitar bloqueos)
+  // useEffect(() => {
+  //   console.log('🔍 [useEffect - Validación] Campos de perfil cambiados:', {
+  //     nombre: perfil.nombre,
+  //     apellido: perfil.apellido,
+  //     email: perfil.email,
+  //     telefono: perfil.telefono
+  //   })
+  //   
+  //   // Evitar validación si el modal está cerrando para prevenir bloqueos
+  //   if (isModalClosing) {
+  //     console.log('⏭️ [useEffect - Validación] Omitiendo validación - modal cerrando')
+  //     return
+  //   }
+  //   
+  //   const newErrors: typeof fieldErrors = {}
+  //   
+  //   // Validar cada campo
+  //   const nombreError = validateField('nombre', perfil.nombre)
+  //   if (nombreError) newErrors.nombre = nombreError
+  //   
+  //   const apellidoError = validateField('apellido', perfil.apellido)
+  //   if (apellidoError) newErrors.apellido = apellidoError
+  //   
+  //   const emailError = validateField('email', perfil.email)
+  //   if (emailError) newErrors.email = emailError
+  //   
+  //   const telefonoError = validateField('telefono', perfil.telefono)
+  //   if (telefonoError) newErrors.telefono = telefonoError
+  //   
+  //   console.log('🔍 [useEffect - Validación] Errores encontrados:', newErrors)
+  //   setFieldErrors(newErrors)
+  // }, [perfil.nombre, perfil.apellido, perfil.email, perfil.telefono, isModalClosing])
 
   const handlePerfilSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -259,7 +280,7 @@ export default function ConfiguracionPage() {
     const { supabase } = await import('../../lib/supabase')
     const { data, error } = await supabase
       .from('usuarios')
-      .update(updates)
+      .update(updates as any)
       .eq('id', userId)
       .select()
       .single()
@@ -334,18 +355,23 @@ export default function ConfiguracionPage() {
               <CardContent className="space-y-6">
                 {/* Avatar */}
                 <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-                  <div className="relative">
-                    <Avatar className="w-20 h-20 sm:w-24 sm:h-24 ring-4 ring-cuadrangular-purple/20">
-                      {perfil.avatar_url ? (
-                        <AvatarImage src={perfil.avatar_url} />
-                      ) : null}
-                      <AvatarFallback className="bg-gradient-to-br from-cuadrangular-purple to-cuadrangular-cyan text-white text-xl sm:text-2xl font-bold flex items-center justify-center">
-                        {perfil.nombre && perfil.apellido ? 
-                          `${perfil.nombre.charAt(0)}${perfil.apellido.charAt(0)}` : 
-                          <UserCircle className="w-8 h-8 sm:w-10 sm:h-10" />
-                        }
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full ring-4 ring-cuadrangular-purple/20 overflow-hidden bg-gradient-to-br from-cuadrangular-purple to-cuadrangular-cyan flex items-center justify-center">
+                        {perfil.avatar_url ? (
+                          <img 
+                            src={perfil.avatar_url} 
+                            alt="Avatar" 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-white text-xl sm:text-2xl font-bold flex items-center justify-center">
+                            {perfil.nombre && perfil.apellido ? 
+                              `${perfil.nombre.charAt(0)}${perfil.apellido.charAt(0)}` : 
+                              <UserCircle className="w-8 h-8 sm:w-10 sm:h-10" />
+                            }
+                          </span>
+                        )}
+                      </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button 
@@ -711,10 +737,13 @@ export default function ConfiguracionPage() {
 
       {/* Diálogo para ver/editar avatar */}
       <Dialog open={showAvatarDialog} onOpenChange={(open) => {
-        console.log('🔄 [Dialog] onOpenChange:', open, 'showAvatarDialog anterior:', showAvatarDialog)
-        setShowAvatarDialog(open)
+        console.log('🔄 [Dialog] onOpenChange:', open)
         if (!open) {
-          console.log('❌ [Dialog] Modal cerrado')
+          console.log('❌ [Dialog] Cerrando modal inmediatamente')
+          setShowAvatarDialog(false)
+          setAvatarAction(null)
+        } else {
+          setShowAvatarDialog(true)
         }
       }}>
         <DialogContent className="sm:max-w-[500px]">
@@ -736,17 +765,22 @@ export default function ConfiguracionPage() {
           
           {avatarAction === 'view' && (
             <div className="flex flex-col items-center space-y-4 py-4">
-              <Avatar className="w-32 h-32 ring-4 ring-cuadrangular-purple/20">
+              <div className="w-32 h-32 rounded-full ring-4 ring-cuadrangular-purple/20 overflow-hidden bg-gradient-to-br from-cuadrangular-purple to-cuadrangular-cyan flex items-center justify-center">
                 {perfil.avatar_url ? (
-                  <AvatarImage src={perfil.avatar_url} />
-                ) : null}
-                <AvatarFallback className="bg-gradient-to-br from-cuadrangular-purple to-cuadrangular-cyan text-white text-4xl font-bold flex items-center justify-center">
-                  {perfil.nombre && perfil.apellido ? 
-                    `${perfil.nombre.charAt(0)}${perfil.apellido.charAt(0)}` : 
-                    <UserCircle className="w-16 h-16" />
-                  }
-                </AvatarFallback>
-              </Avatar>
+                  <img 
+                    src={perfil.avatar_url} 
+                    alt="Avatar" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-white text-4xl font-bold flex items-center justify-center">
+                    {perfil.nombre && perfil.apellido ? 
+                      `${perfil.nombre.charAt(0)}${perfil.apellido.charAt(0)}` : 
+                      <UserCircle className="w-16 h-16" />
+                    }
+                  </span>
+                )}
+              </div>
               <div className="text-center">
                 <p className="text-sm font-medium">{perfil.nombre} {perfil.apellido}</p>
                 <p className="text-xs text-muted-foreground">{perfil.email}</p>
@@ -757,7 +791,7 @@ export default function ConfiguracionPage() {
           {avatarAction === 'edit' && (
             <div className="space-y-4 py-4">
               <ImageUpload
-                currentImage={perfil.avatar_url}
+                currentImage={perfil.avatar_url || undefined}
                 onUpload={async (file) => {
                   console.log('🖼️ [ImageUpload] Iniciando subida de avatar...', file.name)
                   try {
@@ -768,20 +802,22 @@ export default function ConfiguracionPage() {
                       const avatarUrl = typeof result === 'string' ? result : result.url
                       console.log('✅ [ImageUpload] Avatar subido, URL extraída:', avatarUrl)
                       
-                      // Actualizar estado local con la URL
+                      // Actualizar estado local con la URL (optimizado con startTransition)
                       console.log('🔄 [ImageUpload] Actualizando estado local con avatarUrl:', avatarUrl)
-                      setPerfil(prev => {
-                        console.log('🔄 [ImageUpload] Estado anterior del perfil:', prev)
-                        const newPerfil = { ...prev, avatar_url: avatarUrl }
-                        console.log('🔄 [ImageUpload] Nuevo estado del perfil:', newPerfil)
-                        return newPerfil
+                      startTransition(() => {
+                        setPerfil(prev => {
+                          console.log('🔄 [ImageUpload] Estado anterior del perfil:', prev)
+                          const newPerfil = { ...prev, avatar_url: avatarUrl }
+                          console.log('🔄 [ImageUpload] Nuevo estado del perfil:', newPerfil)
+                          return newPerfil
+                        })
                       })
                       
                       // Actualizar en base de datos
                       if (profile?.id) {
                         try {
                           console.log('💾 [ImageUpload] Guardando avatar en BD para usuario:', profile.id)
-                          await updateProfileInDatabase(profile.id, { avatar_url: avatarUrl })
+                          await updateProfileInDatabase(profile.id, { avatar_url: avatarUrl || undefined } as any)
                           console.log('💾 [ImageUpload] Avatar guardado en BD')
                           
                           // No llamar a refreshProfile() aquí para evitar bucle infinito
@@ -792,8 +828,10 @@ export default function ConfiguracionPage() {
                         }
                       }
                       
+                      // Cerrar el modal inmediatamente después de la subida exitosa
                       console.log('❌ [ImageUpload] Cerrando modal después de subida exitosa')
                       setShowAvatarDialog(false)
+                      setAvatarAction(null)
                       return avatarUrl
                     }
                     console.log('❌ No se obtuvo resultado del upload')
@@ -815,6 +853,7 @@ export default function ConfiguracionPage() {
                     })
                     console.log('❌ [ImageUpload] Cerrando modal después de eliminar avatar')
                     setShowAvatarDialog(false)
+                    setAvatarAction(null)
                   } else {
                     console.log('⚠️ [ImageUpload] No hay avatar para eliminar')
                   }
