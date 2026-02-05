@@ -136,8 +136,47 @@ export const authService = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // OBTENER TODOS LOS USUARIOS
+  // SINCRONIZAR USUARIO DE AUTH A TABLA USUARIOS
   // ═══════════════════════════════════════════════════════════════════════════
+  async syncUsuarioFromAuth(userId: string): Promise<Usuario | null> {
+    try {
+      // Obtener usuario de Auth
+      const { data: { user }, error: authError } = await supabase.auth.getUser(userId)
+      if (authError || !user) throw authError || new Error('Usuario no encontrado en Auth')
+      
+      // Verificar si ya existe en tabla usuarios
+      const { data: existingUser } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('id', userId)
+        .single()
+      
+      if (existingUser) return existingUser
+      
+      // Crear usuario en tabla usuarios
+      const { data, error } = await supabase
+        .from('usuarios')
+        .insert({
+          id: user.id,
+          email: user.email,
+          nombre: user.user_metadata?.nombre || '',
+          apellido: user.user_metadata?.apellido || '',
+          telefono: user.user_metadata?.telefono || null,
+          is_admin: false,
+          activo: true,
+          tema: 'system'
+        })
+        .select('*')
+        .single()
+      
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Error sincronizando usuario:', error)
+      throw error
+    }
+  },
+
   async getAllUsuarios(): Promise<Usuario[]> {
     const { data, error } = await supabase
       .from('usuarios')

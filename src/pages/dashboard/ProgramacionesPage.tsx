@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent } from "../../components/ui/card"
 import { Badge } from "../../components/ui/badge"
@@ -22,6 +22,7 @@ import {
 export default function ProgramacionesPage() {
   const { profile } = useAuth()
   const isAdmin = profile?.is_admin ?? false
+  const navigate = useNavigate()
   
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [view, setView] = useState("lista")
@@ -108,11 +109,42 @@ export default function ProgramacionesPage() {
     compartirEmail("Programaciones del Equipo de Alabanza", mensaje)
   }
 
-  const filteredProgramaciones = programaciones.filter((prog) => {
-    if (filterMonth === "all") return true
-    const month = new Date(prog.fecha).getMonth() + 1
-    return month.toString() === filterMonth
-  })
+  const filteredProgramaciones = useMemo(() => {
+    if (!programaciones.length) return []
+    
+    if (filterMonth === "all") {
+      console.log('Mostrando todas las programaciones:', programaciones.length)
+      return programaciones
+    }
+    
+    const filtered = programaciones.filter((prog) => {
+      try {
+        const progDate = new Date(prog.fecha)
+        const month = progDate.getMonth() + 1
+        const matches = month.toString() === filterMonth
+        return matches
+      } catch (error) {
+        console.error('Error parsing date:', prog.fecha, error)
+        return false
+      }
+    })
+    
+    console.log(`Filtro mes ${filterMonth}: ${programaciones.length} total -> ${filtered.length} filtradas`)
+    return filtered
+  }, [programaciones, filterMonth])
+
+  // Obtener días que tienen programaciones para el calendario
+  const daysWithProgramaciones = useMemo(() => {
+    const days = new Set<string>()
+    filteredProgramaciones.forEach(prog => {
+      try {
+        days.add(new Date(prog.fecha).toDateString())
+      } catch (error) {
+        console.error('Error parsing date for calendar:', prog.fecha, error)
+      }
+    })
+    return days
+  }, [filteredProgramaciones])
 
   const getEstadoStyles = (estado: string) => {
     switch (estado) {
@@ -198,18 +230,30 @@ export default function ProgramacionesPage() {
                 </TabsTrigger>
               </TabsList>
 
-              <Select value={filterMonth} onValueChange={setFilterMonth}>
-                <SelectTrigger className="w-full sm:w-48 border-border/50">
-                  <Filter className="w-4 h-4 mr-2 shrink-0" />
-                  <SelectValue placeholder="Filtrar por mes" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los meses</SelectItem>
-                  <SelectItem value="4">Abril</SelectItem>
-                  <SelectItem value="5">Mayo</SelectItem>
-                  <SelectItem value="6">Junio</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Filtro de meses - Solo en vista calendario */}
+              {view === "calendario" && (
+                <Select value={filterMonth} onValueChange={setFilterMonth}>
+                  <SelectTrigger className="w-full sm:w-48 border-border/50">
+                    <Filter className="w-4 h-4 mr-2 shrink-0" />
+                    <SelectValue placeholder="Filtrar por mes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los meses</SelectItem>
+                    <SelectItem value="1">Enero</SelectItem>
+                    <SelectItem value="2">Febrero</SelectItem>
+                    <SelectItem value="3">Marzo</SelectItem>
+                    <SelectItem value="4">Abril</SelectItem>
+                    <SelectItem value="5">Mayo</SelectItem>
+                    <SelectItem value="6">Junio</SelectItem>
+                    <SelectItem value="7">Julio</SelectItem>
+                    <SelectItem value="8">Agosto</SelectItem>
+                    <SelectItem value="9">Septiembre</SelectItem>
+                    <SelectItem value="10">Octubre</SelectItem>
+                    <SelectItem value="11">Noviembre</SelectItem>
+                    <SelectItem value="12">Diciembre</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Vista Lista */}
@@ -312,62 +356,170 @@ export default function ProgramacionesPage() {
             {/* Vista Calendario */}
             <TabsContent value="calendario" className="mt-0">
               <div className="flex flex-col lg:flex-row gap-6">
-                {/* Calendario */}
-                <div className="flex justify-center p-4 border border-border/50 rounded-xl bg-card">
+                {/* Calendario mejorado */}
+                <div className="flex flex-col justify-center p-6 border-2 border-dashed border-cuadrangular-cyan/30 rounded-2xl bg-gradient-to-br from-cuadrangular-cyan/5 via-cuadrangular-purple/5 to-cuadrangular-cyan/10 backdrop-blur-sm">
+                  <div className="text-center mb-4 w-full">
+                    <h3 className="text-lg font-semibold text-cuadrangular-cyan flex items-center justify-center gap-2">
+                      <CalendarIcon className="w-5 h-5" />
+                      Calendario de Programaciones
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Selecciona una fecha para ver las programaciones
+                    </p>
+                  </div>
+                  <div className="w-full">
                   <Calendar
                     mode="single"
                     selected={date}
                     onSelect={setDate}
-                    className="rounded-md"
+                    className="rounded-xl border-0 bg-white/50 backdrop-blur-sm shadow-lg"
+                    components={{
+                      Day: ({ date: dayDate, ...props }) => {
+                        if (!dayDate) return <div {...props} />
+                        
+                        const hasProgramacion = daysWithProgramaciones.has(dayDate.toDateString())
+                        const isToday = dayDate.toDateString() === new Date().toDateString()
+                        const isSelected = date?.toDateString() === dayDate.toDateString()
+                        
+                        let className = "h-10 w-10 text-sm rounded-lg font-medium transition-all duration-200 "
+                        
+                        if (isSelected) {
+                          className += " bg-gradient-to-r from-cuadrangular-cyan to-cuadrangular-purple text-white shadow-lg hover:shadow-xl "
+                        } else if (isToday) {
+                          className += " bg-cuadrangular-yellow/20 text-cuadrangular-yellow font-bold "
+                        } else if (hasProgramacion) {
+                          className += " bg-cuadrangular-cyan/10 text-cuadrangular-cyan border border-cuadrangular-cyan/30 hover:bg-cuadrangular-cyan/20 "
+                        } else {
+                          className += " hover:bg-cuadrangular-cyan/20 "
+                        }
+                        
+                        return (
+                          <div
+                            {...props}
+                            className={className}
+                          >
+                            {dayDate.getDate()}
+                          </div>
+                        )
+                      }
+                    }}
+                    classNames={{
+                      months: "space-y-2",
+                      month: "text-sm font-medium text-cuadrangular-cyan",
+                      caption: "flex justify-center pt-1 relative items-center",
+                      caption_label: "text-sm font-medium text-cuadrangular-purple",
+                      nav: "space-x-1",
+                      nav_button: "h-8 w-8 rounded-lg bg-cuadrangular-cyan/10 hover:bg-cuadrangular-cyan/20 text-cuadrangular-cyan transition-colors",
+                      table: "w-full border-collapse space-y-1",
+                      head_row: "text-cuadrangular-purple",
+                      head_cell: "text-xs font-medium uppercase tracking-wider py-2 px-3",
+                      row: "hover:bg-cuadrangular-cyan/5 transition-colors",
+                      cell: "text-center py-3 px-2 relative",
+                      day_outside: "text-muted-foreground opacity-50"
+                    }}
                   />
+                  </div>
                 </div>
                 
-                {/* Programaciones del día */}
+                {/* Programaciones del día mejorado */}
                 <div className="flex-1">
-                  <h3 className="font-semibold mb-4 flex items-center gap-2">
-                    <CalendarIcon className="w-4 h-4 text-cuadrangular-cyan" />
-                    {date ? date.toLocaleDateString("es-ES", { 
-                      weekday: "long", 
-                      day: "numeric", 
-                      month: "long" 
-                    }) : "Selecciona una fecha"}
-                  </h3>
-                  
-                  {filteredProgramaciones.filter(
-                    (prog) => new Date(prog.fecha).toDateString() === date?.toDateString()
-                  ).length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground border border-dashed border-border/50 rounded-xl">
-                      <CalendarIcon className="w-12 h-12 mb-2 opacity-30" />
-                      <p>No hay programaciones</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {filteredProgramaciones
-                        .filter((prog) => new Date(prog.fecha).toDateString() === date?.toDateString())
-                        .map((prog) => (
-                          <div 
-                            key={prog.id} 
-                            className="flex items-center justify-between p-4 border border-border/50 rounded-xl hover:border-cuadrangular-cyan/30 transition-colors"
+                  <div className="bg-gradient-to-r from-cuadrangular-cyan/10 via-cuadrangular-purple/10 to-cuadrangular-cyan/5 backdrop-blur-sm rounded-2xl p-6 border border-cuadrangular-cyan/20">
+                    <h3 className="font-semibold text-lg text-cuadrangular-cyan flex items-center gap-2">
+                      <CalendarIcon className="w-5 h-5" />
+                      {date ? date.toLocaleDateString("es-ES", { 
+                        weekday: "long", 
+                        day: "numeric", 
+                        month: "long",
+                        year: "numeric"
+                      }) : "Selecciona una fecha"}
+                    </h3>
+                    
+                    {filteredProgramaciones.filter(
+                      (prog) => new Date(prog.fecha).toDateString() === date?.toDateString()
+                    ).length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <CalendarIcon className="w-16 h-16 mb-4 text-cuadrangular-cyan/50" />
+                        <h4 className="text-lg font-medium text-cuadrangular-cyan">No hay programaciones</h4>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          {date ? 'No hay programaciones programadas para este día' : 'Selecciona una fecha en el calendario'}
+                        </p>
+                        {date && (
+                          <Button 
+                            onClick={() => navigate('/dashboard/programaciones/nueva')}
+                            className="mt-4 bg-gradient-to-r from-cuadrangular-cyan to-cuadrangular-purple hover:opacity-90 text-white shadow-lg transition-all duration-300"
                           >
-                            <div>
-                              <h4 className="font-semibold">{prog.tipo}</h4>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                <Clock className="w-3.5 h-3.5" />
-                                <span>{prog.hora}</span>
-                                <Badge variant="secondary" className={getEstadoStyles(prog.estado)}>
-                                  {prog.estado}
-                                </Badge>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Crear Programación
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {(() => {
+                          const dayProgramaciones = filteredProgramaciones
+                            .filter((prog) => new Date(prog.fecha).toDateString() === date?.toDateString())
+                          
+                          console.log(`Programaciones para el día ${date?.toDateString()}:`, {
+                            totalFiltradas: filteredProgramaciones.length,
+                            delDia: dayProgramaciones.length,
+                            diaSeleccionado: date?.toDateString(),
+                            programacionesDelDia: dayProgramaciones.map(p => ({ id: p.id, fecha: p.fecha, tipo: p.tipo }))
+                          })
+                          
+                          return dayProgramaciones.map((prog, index) => (
+                            <div 
+                              key={prog.id} 
+                              className="group bg-white/80 backdrop-blur-sm rounded-xl border border-cuadrangular-cyan/30 p-4 hover:border-cuadrangular-cyan/50 hover:shadow-lg transition-all duration-300 animate-fade-in-up"
+                              style={{ animationDelay: `${index * 100}ms` }}
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-cuadrangular-purple flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-cuadrangular-cyan animate-pulse" />
+                                    {prog.tipo}
+                                  </h4>
+                                  <div className="flex items-center gap-3 text-sm text-muted-foreground mt-2">
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="w-4 h-4 text-cuadrangular-cyan" />
+                                      <span className="font-medium">{prog.hora}</span>
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Users className="w-4 h-4 text-cuadrangular-yellow" />
+                                      <span className="font-medium">{prog.miembrosCount} miembros</span>
+                                    </span>
+                                  </div>
+                                  {prog.miembros.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-3">
+                                      {prog.miembros.slice(0, 3).map((miembro: any, idx: number) => (
+                                        <span key={idx} className="inline-flex items-center px-2 py-1 rounded-full bg-cuadrangular-purple/10 text-cuadrangular-purple text-xs font-medium">
+                                          {miembro.nombre} {miembro.apellido}
+                                        </span>
+                                      ))}
+                                      {prog.miembros.length > 3 && (
+                                        <span className="inline-flex items-center px-2 py-1 rounded-full bg-cuadrangular-purple/10 text-cuadrangular-purple text-xs font-medium">
+                                          +{prog.miembros.length - 3} más
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex flex-col items-end gap-2">
+                                  <Badge variant="secondary" className={`text-xs font-medium px-3 py-1 ${getEstadoStyles(prog.estado)}`}>
+                                    {prog.estado}
+                                  </Badge>
+                                  <Button variant="ghost" size="sm" asChild className="bg-cuadrangular-cyan/10 hover:bg-cuadrangular-cyan/20 text-cuadrangular-cyan border-cuadrangular-cyan/30">
+                                    <Link to={`/dashboard/programaciones/${prog.id}`}>
+                                      <ChevronRight className="w-4 h-4" />
+                                    </Link>
+                                  </Button>
+                                </div>
                               </div>
                             </div>
-                            <Button variant="ghost" size="sm" asChild>
-                              <Link to={`/dashboard/programaciones/${prog.id}`}>
-                                Ver Detalles
-                              </Link>
-                            </Button>
-                          </div>
-                        ))}
-                    </div>
-                  )}
+                          ))
+                        })()}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </TabsContent>

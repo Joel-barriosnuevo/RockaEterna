@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { Link } from "react-router-dom"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Card, CardContent } from "../../components/ui/card"
@@ -17,7 +18,7 @@ import {
 } from "../../components/ui/dialog"
 import { Label } from "../../components/ui/label"
 import { Textarea } from "../../components/ui/textarea"
-import { Music, Search, Plus, Edit, Trash2, Filter, ListMusic, Grid3X3, Loader2 } from "lucide-react"
+import { Music, Search, Plus, Edit, Trash2, Filter, ListMusic, Grid3X3, Loader2, Eye } from "lucide-react"
 import { useCanciones, useCategorias } from "../../hooks"
 import { useAuth } from "../../contexts/AuthContext"
 import type { NuevaCancion } from "../../types/database.types"
@@ -471,7 +472,7 @@ export default function RepertorioPage() {
           </CardContent>
         </Card>
       ) : viewMode === "grid" ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredSongs.map((cancion, index) => {
             const categoriaNombre = getCategoriaName(cancion.categoria_id)
             return (
@@ -480,24 +481,24 @@ export default function RepertorioPage() {
                 className="group border-border/50 hover:border-cuadrangular-red/30 transition-all duration-300 hover:shadow-glow-red/20 animate-fade-in-up"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cuadrangular-red/20 to-cuadrangular-purple/20 flex items-center justify-center">
-                      <Music className="w-6 h-6 text-cuadrangular-red" />
+                <CardContent className="p-4 sm:p-5">
+                  <div className="flex items-start justify-between mb-3 sm:mb-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-cuadrangular-red/20 to-cuadrangular-purple/20 flex items-center justify-center">
+                      <Music className="w-5 h-5 sm:w-6 sm:h-6 text-cuadrangular-red" />
                     </div>
                     <Badge 
                       variant="secondary" 
-                      className={categoriaNombre === "Alabanza" 
+                      className={`text-xs ${categoriaNombre === "Alabanza" 
                         ? "bg-cuadrangular-red/10 text-cuadrangular-red border-0" 
                         : "bg-cuadrangular-cyan/10 text-cuadrangular-cyan border-0"
-                      }
+                      }`}
                     >
                       {categoriaNombre}
                     </Badge>
                   </div>
                   
-                  <h3 className="font-semibold text-lg mb-1 line-clamp-1">{cancion.nombre}</h3>
-                  <p className="text-sm text-muted-foreground mb-3">{cancion.autor || "Desconocido"}</p>
+                  <h3 className="font-semibold text-base sm:text-lg mb-1 line-clamp-1">{cancion.nombre}</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">{cancion.autor || "Desconocido"}</p>
                   
                     <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">
@@ -507,18 +508,28 @@ export default function RepertorioPage() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-8 w-8"
-                        onClick={() => handleOpenEdit(cancion)}
+                        className="h-7 w-7 sm:h-8 sm:w-8"
+                        asChild
                       >
-                        <Edit className="w-4 h-4" />
+                        <Link to={`/dashboard/repertorio/${cancion.id}`}>
+                          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </Link>
                       </Button>
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-8 w-8 text-cuadrangular-red"
+                        className="h-7 w-7 sm:h-8 sm:w-8"
+                        onClick={() => handleOpenEdit(cancion)}
+                      >
+                        <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-7 w-7 sm:h-8 sm:w-8 text-cuadrangular-red"
                         onClick={() => handleDeleteSong(cancion.id)}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                     </div>
                   </div>
@@ -566,18 +577,28 @@ export default function RepertorioPage() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => handleOpenEdit(cancion)}
+                          className="h-7 w-7 sm:h-8 sm:w-8"
+                          asChild
                         >
-                          <Edit className="w-4 h-4" />
+                          <Link to={`/dashboard/repertorio/${cancion.id}`}>
+                            <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                          </Link>
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8 text-cuadrangular-red"
+                          className="h-7 w-7 sm:h-8 sm:w-8"
+                          onClick={() => handleOpenEdit(cancion)}
+                        >
+                          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7 sm:h-8 sm:w-8 text-cuadrangular-red"
                           onClick={() => handleDeleteSong(cancion.id)}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                         </Button>
                       </div>
                     </div>

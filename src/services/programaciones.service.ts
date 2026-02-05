@@ -193,13 +193,19 @@ export const programacionesService = {
   // ASIGNAR MIEMBRO A PROGRAMACIÓN
   // ═══════════════════════════════════════════════════════════════════════════
   async addMiembro(programacionId: string, miembroId: string, rolId?: number) {
+    const insertData: any = {
+      programacion_id: programacionId,
+      miembro_id: miembroId,
+    }
+    
+    // Solo agregar rol_id si existe y no es undefined
+    if (rolId !== undefined && rolId !== null) {
+      insertData.rol_id = rolId
+    }
+    
     const { data, error } = await supabase
       .from('programacion_miembros')
-      .insert({
-        programacion_id: programacionId,
-        miembro_id: miembroId,
-        rol_id: rolId,
-      })
+      .insert(insertData)
       .select(`
         *,
         miembro:miembros(*),

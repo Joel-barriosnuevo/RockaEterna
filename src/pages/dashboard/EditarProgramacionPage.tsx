@@ -88,11 +88,13 @@ export default function EditarProgramacionPage() {
           setFechaHora(formatFechaHora(fechaBase))
           
           // Extraer miembros asignados con su rol
-          const miembrosAsignados = (prog as any).programacion_miembros?.map((pm: any) => ({
-            id: pm.miembro_id,
-            rolId: pm.rol_id || 0,
-            rolNombre: pm.rol?.nombre || "Sin rol"
-          })) || []
+          const miembrosAsignados = (prog as any).programacion_miembros
+            ?.filter((pm: any) => pm.miembro?.id && pm.miembro.id !== 'undefined')
+            ?.map((pm: any) => ({
+              id: pm.miembro.id,
+              rolId: pm.rol?.id || 0,
+              rolNombre: pm.rol?.nombre || "Sin rol"
+            })) || []
           
           setFormData({
             tipo: prog.tipo_id?.toString() || "",
@@ -202,21 +204,38 @@ export default function EditarProgramacionPage() {
       
       // Eliminar miembros que ya no están
       for (const pm of miembrosActuales) {
-        if (!formData.miembrosSeleccionados.find(m => m.id === pm.miembro_id)) {
-          await programacionesService.removeMiembro(id, pm.miembro_id)
+        if (!formData.miembrosSeleccionados.find(m => m.id === pm.miembro?.id)) {
+          await programacionesService.removeMiembro(id, pm.miembro?.id)
         }
       }
       
       // Agregar miembros nuevos o actualizar rol
       for (const miembro of formData.miembrosSeleccionados) {
-        const existente = miembrosActuales.find((pm: any) => pm.miembro_id === miembro.id)
+        // Saltar miembros sin ID válido
+        if (!miembro.id || miembro.id === 'undefined' || miembro.id === undefined) {
+          continue
+        }
+        
+        const existente = miembrosActuales.find((pm: any) => pm.miembro?.id === miembro.id)
+        
         if (!existente) {
           // Agregar nuevo
-          await programacionesService.addMiembro(id, miembro.id, miembro.rolId || undefined)
-        } else if (existente.rol_id !== miembro.rolId) {
-          // Rol cambió - eliminar y re-agregar
-          await programacionesService.removeMiembro(id, miembro.id)
-          await programacionesService.addMiembro(id, miembro.id, miembro.rolId || undefined)
+          try {
+            await programacionesService.addMiembro(id, miembro.id, miembro.rolId)
+          } catch (addError: any) {
+            if (addError.code === '23505') {
+              // Error de duplicidad - ignorar y continuar
+              continue
+            } else {
+              throw addError
+            }
+          }
+        } else {
+          // Miembro existe - verificar si necesita actualización de rol
+          if (existente.rol?.id !== miembro.rolId) {
+            await programacionesService.removeMiembro(id, miembro.id)
+            await programacionesService.addMiembro(id, miembro.id, miembro.rolId)
+          }
         }
       }
       

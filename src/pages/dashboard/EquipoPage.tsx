@@ -89,8 +89,12 @@ export default function EquipoPage() {
 
   // Filtrar usuarios que ya son miembros
   const usuariosDisponibles = useMemo(() => {
-    const emailsMiembros = miembros.map(m => m.email?.toLowerCase()).filter(Boolean)
-    return usuarios.filter(u => !emailsMiembros.includes(u.email?.toLowerCase()))
+    const emailsMiembros = miembros.map(m => m.email?.toLowerCase().trim()).filter(Boolean)
+    
+    return usuarios.filter(u => {
+      const emailUsuario = u.email?.toLowerCase().trim()
+      return !emailsMiembros.includes(emailUsuario || '')
+    })
   }, [usuarios, miembros])
 
   // Usuario seleccionado
