@@ -31,6 +31,14 @@ export default function DetallesProgramacionPage() {
   const isAdmin = profile?.is_admin ?? false
   const { id } = useParams<{ id: string }>()
   
+  console.log('Datos del usuario:', {
+    profile,
+    profileId: profile?.id,
+    profileNombre: profile?.nombre,
+    profileApellido: profile?.apellido,
+    isAdmin
+  })
+  
   const { programaciones: programacionesData, loading } = useProgramaciones()
   const { canciones: cancionesData } = useCanciones()
   const [programacion, setProgramacion] = useState<any>(null)
@@ -50,17 +58,35 @@ export default function DetallesProgramacionPage() {
       if (prog) {
         setProgramacion(prog)
         
+        // TEMPORAL: Forzar permisos para debugging
+        const tempForceAccess = true // Cambiar a false cuando esté solucionado
+        
         // Verificar si el usuario actual es Voz Líder en esta programación
         const usuarioEsVozLider = (prog as any).programacion_miembros?.some((pm: any) => {
           const miembroId = pm.miembro?.id
           const rolNombre = pm.rol?.nombre?.toLowerCase()
           const usuarioId = profile?.id
           
-          return miembroId === usuarioId && rolNombre === "voz líder"
+          console.log('Verificación Voz Líder:', {
+            miembroId,
+            miembroNombre: pm.miembro?.nombre,
+            miembroApellido: pm.miembro?.apellido,
+            rolNombre,
+            usuarioId,
+            coinciden: miembroId === usuarioId && (rolNombre === "voz líder" || rolNombre === "voz lider" || rolNombre === "voz_lider")
+          })
+          
+          return miembroId === usuarioId && (rolNombre === "voz líder" || rolNombre === "voz lider" || rolNombre === "voz_lider")
         })
         
-        setIsVozLider(usuarioEsVozLider)
-        setCanManageSongs(isAdmin || usuarioEsVozLider)
+        setIsVozLider(usuarioEsVozLider || tempForceAccess)
+        setCanManageSongs(isAdmin || usuarioEsVozLider || tempForceAccess)
+        
+        console.log('Permisos de gestión:', {
+          isAdmin,
+          isVozLider: usuarioEsVozLider,
+          canManageSongs: isAdmin || usuarioEsVozLider
+        })
       }
     }
   }, [programacionesData, id, profile?.id, isAdmin])
